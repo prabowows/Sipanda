@@ -1,0 +1,13 @@
+node_modules/
+.idea/
+.vscode/
+*.exe
+*.zip
+*.tgz
+scratch/
+build/
+.dart_tool/
+.pub-cache/
+.pub/
+Kecamatan.json
+semarang.geojson
