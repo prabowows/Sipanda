@@ -12,9 +12,9 @@
 
 ## 📌 Penjelasan Produk (Product Overview)
 
-**SiPanda (Sistem Peringatan Dini Banjir & Telemetri Cuaca Kota Semarang)** adalah platform pemantauan cuaca dan mitigasi risiko banjir terpadu yang dirancang khusus untuk 16 Kecamatan di Kota Semarang.
+**SiPanda (Sistem Integrasi Peringatan Dini Adaptif - Cuaca Kota Semarang)** adalah platform pemantauan cuaca dan mitigasi risiko bencana cuaca terpadu yang dirancang khusus untuk 16 Kecamatan di Kota Semarang.
 
-Platform ini hadir sebagai solusi digital cerdas untuk memberikan **informasi kondisi cuaca dan potensi bencana banjir secara real-time dan akurat**, baik kepada masyarakat umum maupun tim penanggulangan bencana (BPBD / Command Center). Dengan mengombinasikan visualisasi peta wilayah berbasis **GIS (Geographic Information System)**, analisis tren **time-series**, serta otomatisasi data dari **BMKG**, SiPanda membantu mempercepat respons darurat dan meminimalisir dampak kerugian akibat cuaca ekstrem.
+Platform ini hadir sebagai solusi digital cerdas untuk memberikan **informasi kondisi cuaca dan potensi bencana secara real-time dan akurat**, baik kepada masyarakat umum maupun tim penanggulangan bencana (BPBD / Command Center). Dengan mengombinasikan visualisasi peta wilayah berbasis **GIS (Geographic Information System)**, analisis tren **time-series**, serta otomatisasi data dari **BMKG**, SiPanda membantu mempercepat respons darurat dan meminimalisir dampak kerugian akibat cuaca ekstrem.
 
 ---
 
@@ -23,9 +23,9 @@ Platform ini hadir sebagai solusi digital cerdas untuk memberikan **informasi ko
 ### 🗺️ 1. Interactive GIS Risk Map (Peta Risiko Wilayah 16 Kecamatan)
 * Memvisualisasikan poligon batas wilayah 16 Kecamatan di Kota Semarang secara presisi.
 * Menyajikan indikator warna status risiko secara otomatis:
-  * 🟢 **Aman**: Curah hujan normal & kelembapan stabil.
-  * 🟠 **Waspada**: Hujan sedang / fluktuasi cuaca ekstrem.
-  * 🔴 **Siaga / Hazard**: Curah hujan lebat (>10mm/jam) & probabilitas banjir tinggi.
+  * 🟢 **Aman**: Cuaca normal & kelembapan stabil.
+  * 🟠 **Waspada**: Cuaca Waspada / fluktuasi cuaca ekstrem.
+  * 🔴 **Siaga / Hazard**: Cuaca Siaga.
 * Mode tampilan peta interaktif yang dapat beralih antara **Curah Hujan**, **Suhu**, dan **Kelembapan**.
 
 ### ⚡ 2. Live Telemetry & Real-Time Sync
@@ -38,7 +38,7 @@ Platform ini hadir sebagai solusi digital cerdas untuk memberikan **informasi ko
 
 ### 🛡️ 4. Sentinel Command Center & Admin Portal
 * **Manual Override Status**: Memungkinkan petugas BPBD / Admin untuk mengubah tingkat status risiko suatu kecamatan secara langsung saat keadaan darurat di lapangan.
-* **Pencatatan Ground Truth**: Fitur input kondisi faktual banjir sebagai basis data validasi dan retraining Machine Learning di masa mendatang.
+* **Pencatatan Ground Truth**: Fitur input kondisi faktual cuaca sebagai basis data validasi dan retraining Machine Learning di masa mendatang.
 
 ---
 
