@@ -205,17 +205,11 @@ class RiskGisMapState extends State<RiskGisMap> with TickerProviderStateMixin {
         final f = forecasts.first; 
         
         if (_currentMode == MapMode.hujan) {
-           if (f.tp > 10) fillColor = Colors.redAccent.withOpacity(0.4);
-           else if (f.tp >= 5) fillColor = Colors.orangeAccent.withOpacity(0.4);
-           else fillColor = Colors.greenAccent.withOpacity(0.4);
+           fillColor = f.rainColor.withOpacity(0.4);
         } else if (_currentMode == MapMode.suhu) {
-           if (f.t > 35) fillColor = Colors.redAccent.withOpacity(0.4);
-           else if (f.t >= 30) fillColor = Colors.orangeAccent.withOpacity(0.4);
-           else fillColor = Colors.greenAccent.withOpacity(0.4);
+           fillColor = f.tempColor.withOpacity(0.4);
         } else if (_currentMode == MapMode.kelembapan) {
-           if (f.hu < 40) fillColor = Colors.redAccent.withOpacity(0.4);
-           else if (f.hu <= 60) fillColor = Colors.orangeAccent.withOpacity(0.4);
-           else fillColor = Colors.greenAccent.withOpacity(0.4);
+           fillColor = f.huColor.withOpacity(0.4);
         }
       }
       
@@ -370,7 +364,7 @@ class RiskGisMapState extends State<RiskGisMap> with TickerProviderStateMixin {
     if (_currentMode == MapMode.hujan) {
       unit = 'Curah Hujan (mm)';
       low = '0-5'; med = '5-10'; high = '>10';
-      lowLbl = 'Cerah - Ringan'; medLbl = 'Hujan Sedang'; highLbl = 'Hujan Lebat';
+      lowLbl = 'Cerah'; medLbl = 'Sedang'; highLbl = 'Lebat';
     } else if (_currentMode == MapMode.suhu) {
       unit = 'Suhu (°C)';
       low = '0-30'; med = '30-35'; high = '>35';
@@ -378,7 +372,7 @@ class RiskGisMapState extends State<RiskGisMap> with TickerProviderStateMixin {
     } else {
       unit = 'Kelembapan (%)';
       low = '60-100'; med = '40-60'; high = '<40';
-      lowLbl = 'Lembab'; medLbl = 'Sedang'; highLbl = 'Kering';
+      lowLbl = 'Lembap'; medLbl = 'Sedang'; highLbl = 'Kering';
     }
 
     return Container(

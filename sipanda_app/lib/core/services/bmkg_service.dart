@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../models/district_data.dart';
 
@@ -16,6 +17,43 @@ class WeatherData {
     required this.tp,
     required this.weatherDesc,
   });
+
+  // Unified weather status labels and color mapping (matching map risk layer)
+  String get rainLabel {
+    if (tp > 10) return 'Lebat';
+    if (tp >= 5) return 'Sedang';
+    return 'Cerah';
+  }
+
+  Color get rainColor {
+    if (tp > 10) return Colors.redAccent;
+    if (tp >= 5) return Colors.orangeAccent;
+    return Colors.greenAccent;
+  }
+
+  String get tempLabel {
+    if (t > 35) return 'Sangat Panas';
+    if (t >= 30) return 'Panas';
+    return 'Normal';
+  }
+
+  Color get tempColor {
+    if (t > 35) return Colors.redAccent;
+    if (t >= 30) return Colors.orangeAccent;
+    return Colors.greenAccent;
+  }
+
+  String get huLabel {
+    if (hu < 40) return 'Kering';
+    if (hu <= 60) return 'Sedang';
+    return 'Lembap';
+  }
+
+  Color get huColor {
+    if (hu < 40) return Colors.redAccent;
+    if (hu <= 60) return Colors.orangeAccent;
+    return Colors.greenAccent;
+  }
 }
 
 class BmkgService {

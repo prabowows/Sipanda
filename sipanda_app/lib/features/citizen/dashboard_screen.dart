@@ -523,23 +523,12 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
     final currentTemp = currentForecast?.t.toStringAsFixed(1) ?? '--';
     final currentHu = currentForecast?.hu.toStringAsFixed(0) ?? '--';
 
-    String hujanLbl = 'N/A'; Color hujanColor = Colors.grey;
-    String suhuLbl  = 'N/A'; Color suhuColor  = Colors.grey;
-    String huLbl    = 'N/A'; Color huColor    = Colors.grey;
-
-    if (currentForecast != null) {
-      if (currentForecast.tp > 10)      { hujanLbl = 'Lebat';       hujanColor = Colors.redAccent; }
-      else if (currentForecast.tp >= 5) { hujanLbl = 'Sedang';      hujanColor = Colors.orangeAccent; }
-      else                              { hujanLbl = 'Cerah';       hujanColor = SipandaTheme.statusAman; }
-
-      if (currentForecast.t > 35)       { suhuLbl = 'Sangat Panas'; suhuColor = Colors.redAccent; }
-      else if (currentForecast.t >= 30) { suhuLbl = 'Panas';        suhuColor = Colors.orangeAccent; }
-      else                              { suhuLbl = 'Normal';        suhuColor = SipandaTheme.statusAman; }
-
-      if (currentForecast.hu < 40)      { huLbl = 'Kering';         huColor = Colors.orangeAccent; }
-      else if (currentForecast.hu <= 60){ huLbl = 'Normal';         huColor = SipandaTheme.statusAman; }
-      else                              { huLbl = 'Lembap';         huColor = Colors.blueAccent; }
-    }
+    String hujanLbl = currentForecast?.rainLabel ?? 'N/A';
+    Color hujanColor = currentForecast?.rainColor ?? Colors.grey;
+    String suhuLbl  = currentForecast?.tempLabel ?? 'N/A';
+    Color suhuColor  = currentForecast?.tempColor ?? Colors.grey;
+    String huLbl    = currentForecast?.huLabel ?? 'N/A';
+    Color huColor    = currentForecast?.huColor ?? Colors.grey;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
