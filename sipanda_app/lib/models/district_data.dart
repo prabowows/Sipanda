@@ -1,5 +1,61 @@
 enum RiskLevel { aman, waspada, siaga }
 
+class ForecastPoint {
+  final int hourOffset;
+  final String timeLabel;
+  final double rainfall;
+  final double temp;
+  final double humidity;
+  final RiskLevel risk;
+  final double floodProbability;
+  final bool isPrediction;
+
+  ForecastPoint({
+    required this.hourOffset,
+    required this.timeLabel,
+    required this.rainfall,
+    required this.temp,
+    required this.humidity,
+    required this.risk,
+    required this.floodProbability,
+    this.isPrediction = true,
+  });
+
+  factory ForecastPoint.fromMap(Map<String, dynamic> map) {
+    RiskLevel parseRisk(String val) {
+      switch (val.toLowerCase()) {
+        case 'siaga': return RiskLevel.siaga;
+        case 'waspada': return RiskLevel.waspada;
+        default: return RiskLevel.aman;
+      }
+    }
+
+    return ForecastPoint(
+      hourOffset: (map['hour_offset'] ?? 1).toInt(),
+      timeLabel: map['time_label'] ?? '+${map['hour_offset'] ?? 1} Jam',
+      rainfall: (map['rainfall'] ?? 0.0).toDouble(),
+      temp: (map['temp'] ?? 28.0).toDouble(),
+      humidity: (map['humidity'] ?? 75.0).toDouble(),
+      risk: parseRisk(map['risk'] ?? 'aman'),
+      floodProbability: (map['flood_prob'] ?? 0.0).toDouble(),
+      isPrediction: map['is_prediction'] ?? true,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'hour_offset': hourOffset,
+      'time_label': timeLabel,
+      'rainfall': rainfall,
+      'temp': temp,
+      'humidity': humidity,
+      'risk': risk.name,
+      'flood_prob': floodProbability,
+      'is_prediction': isPrediction,
+    };
+  }
+}
+
 class DistrictHistoryData {
   final String id;
   final DateTime timestamp;
@@ -64,6 +120,7 @@ class DistrictData {
   final double humidity;
   final double floodProbability;
   final String weatherDesc;
+  final List<ForecastPoint> forecast3h;
 
   DistrictData({
     required this.id,
@@ -76,6 +133,7 @@ class DistrictData {
     required this.humidity,
     required this.floodProbability,
     required this.weatherDesc,
+    this.forecast3h = const [],
   });
 
   RiskLevel get activeRiskLevel => overriddenRiskLevel ?? mlRiskLevel;
@@ -99,6 +157,13 @@ class DistrictData {
       }
     }
 
+    List<ForecastPoint> parsedForecast = [];
+    if (data['forecast_3h'] != null && data['forecast_3h'] is List) {
+      parsedForecast = (data['forecast_3h'] as List)
+          .map((item) => ForecastPoint.fromMap(Map<String, dynamic>.from(item)))
+          .toList();
+    }
+
     return DistrictData(
       id: documentId,
       name: data['name'] ?? '',
@@ -110,6 +175,7 @@ class DistrictData {
       humidity: (data['humidity'] ?? 75).toDouble(),
       floodProbability: (data['flood_prob'] ?? 0).toDouble(),
       weatherDesc: data['weather_desc'] ?? 'Cerah',
+      forecast3h: parsedForecast,
     );
   }
 
@@ -124,6 +190,7 @@ class DistrictData {
       'humidity': humidity,
       'flood_prob': floodProbability,
       'weather_desc': weatherDesc,
+      'forecast_3h': forecast3h.map((f) => f.toMap()).toList(),
     };
   }
 }

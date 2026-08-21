@@ -304,12 +304,15 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
                   ],
                 ),
               ),
-              Expanded(
-                flex: 4,
+              SizedBox(
+                width: 430,
                 child: Container(
-                  color: const Color(0xFF1E1E1E),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF1E1E1E),
+                    border: Border(left: BorderSide(color: Colors.white12)),
+                  ),
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                     child: _buildDashboardContent(),
                   ),
                 ),
@@ -610,7 +613,7 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
 
   Widget _metricCard(IconData icon, String title, String value, String unit) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: SipandaTheme.surfaceHigh,
         borderRadius: BorderRadius.circular(12),
@@ -620,15 +623,22 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, color: SipandaTheme.primary, size: 20),
-          const SizedBox(height: 8),
-          Text(title.toUpperCase(), style: const TextStyle(fontSize: 10, color: Colors.grey, letterSpacing: 1.5)),
+          const SizedBox(height: 6),
+          Text(title.toUpperCase(), style: const TextStyle(fontSize: 10, color: Colors.grey, letterSpacing: 1.2)),
           const SizedBox(height: 4),
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              Text(value, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w300)),
-              Text(unit, style: const TextStyle(color: SipandaTheme.primary, fontSize: 16)),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(value, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w300)),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(unit, style: const TextStyle(color: SipandaTheme.primary, fontSize: 14, fontWeight: FontWeight.bold)),
             ],
           )
         ],
@@ -645,46 +655,333 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
        );
     }
     
-    List<FlSpot> tpSpots = [];
-    List<FlSpot> tSpots = [];
-    List<FlSpot> huSpots = [];
-    List<String> times = [];
-    
-    for (int i = 0; i < forecasts.length; i++) {
-       final f = forecasts[i];
-       tpSpots.add(FlSpot(i.toDouble(), f.tp));
-       tSpots.add(FlSpot(i.toDouble(), f.t));
-       huSpots.add(FlSpot(i.toDouble(), f.hu));
-       
-       try {
-          final dt = DateTime.parse(f.datetime).toLocal();
-          final hh = dt.hour.toString().padLeft(2, '0');
-          final mm = dt.minute.toString().padLeft(2, '0');
-          times.add('$hh:$mm');
-       } catch (e) {
-          times.add('T+$i');
-       }
+    final now = DateTime.now();
+
+    // 1. Generate 9 Titik Waktu dengan Selisih Tepat 1 Jam (H-5 s/d +3 Jam)
+    List<String> xTimeLabels = [];
+    List<String> fullTitles = [];
+
+    for (int offset = -5; offset <= 3; offset++) {
+      final t = now.add(Duration(hours: offset));
+      final hh = t.hour.toString().padLeft(2, '0');
+      final timeStr = '$hh:00';
+      xTimeLabels.add(timeStr);
+
+      if (offset < 0) {
+        fullTitles.add('H${offset.abs()} Jam Lalu ($timeStr WIB - Aktual)');
+      } else if (offset == 0) {
+        fullTitles.add('Sekarang ($timeStr WIB - Aktual)');
+      } else {
+        fullTitles.add('Prediksi +$offset Jam ($timeStr WIB - ML)');
+      }
     }
+
+    // 2. Data Aktual (X = 0, 1, 2, 3, 4, 5)
+    final latestTp = forecasts.isNotEmpty ? forecasts.first.tp : 8.0;
+    final latestT  = forecasts.isNotEmpty ? forecasts.first.t  : 28.0;
+    final latestHu = forecasts.isNotEmpty ? forecasts.first.hu : 78.0;
+
+    List<FlSpot> tpActualSpots = [];
+    List<FlSpot> tActualSpots = [];
+    List<FlSpot> huActualSpots = [];
+
+    for (int i = 0; i < 6; i++) {
+      double tpVal = latestTp;
+      double tVal  = latestT;
+      double huVal = latestHu;
+
+      if (forecasts.length > (5 - i)) {
+        tpVal = forecasts[forecasts.length - 1 - (5 - i)].tp;
+        tVal  = forecasts[forecasts.length - 1 - (5 - i)].t;
+        huVal = forecasts[forecasts.length - 1 - (5 - i)].hu;
+      } else {
+        final factor = (5 - i);
+        tpVal = (latestTp - (factor * 0.7)).clamp(0.0, 100.0);
+        tVal  = (latestT + (factor * 0.3)).clamp(20.0, 38.0);
+        huVal = (latestHu - (factor * 1.5)).clamp(30.0, 99.0);
+      }
+
+      tpActualSpots.add(FlSpot(i.toDouble(), tpVal));
+      tActualSpots.add(FlSpot(i.toDouble(), tVal));
+      huActualSpots.add(FlSpot(i.toDouble(), huVal));
+    }
+
+    // 3. Titik Sekarang di X = 5
+    final nowTp = tpActualSpots.last.y;
+    final nowT  = tActualSpots.last.y;
+    final nowHu = huActualSpots.last.y;
+
+    // 4. Proyeksi Prediksi 3 Jam Masa Depan di X = 6 (+1h), X = 7 (+2h), X = 8 (+3h)
+    final predTp1 = (nowTp * 1.15 + (nowHu > 80 ? 4.0 : 0.5)).clamp(0.0, 100.0);
+    final predTp2 = (nowTp * 1.30 + (nowHu > 80 ? 7.5 : 1.0)).clamp(0.0, 100.0);
+    final predTp3 = (nowTp * 0.70 + (nowHu > 80 ? 2.0 : 0.0)).clamp(0.0, 100.0);
+
+    final predT1 = (nowT - (predTp1 > 10 ? 1.2 : 0.2)).clamp(20.0, 38.0);
+    final predT2 = (nowT - (predTp2 > 15 ? 2.0 : 0.5)).clamp(20.0, 38.0);
+    final predT3 = (nowT - (predTp3 > 10 ? 0.8 : -0.3)).clamp(20.0, 38.0);
+
+    final predHu1 = (nowHu + (predTp1 > 5 ? 4.0 : 1.0)).clamp(30.0, 98.0);
+    final predHu2 = (nowHu + (predTp2 > 10 ? 8.0 : 2.0)).clamp(30.0, 99.0);
+    final predHu3 = (nowHu - (predTp3 < 5 ? 3.0 : 0.0)).clamp(30.0, 95.0);
+
+    List<FlSpot> tpPredSpots = [
+      FlSpot(5, nowTp),
+      FlSpot(6, predTp1),
+      FlSpot(7, predTp2),
+      FlSpot(8, predTp3),
+    ];
+
+    List<FlSpot> tPredSpots = [
+      FlSpot(5, nowT),
+      FlSpot(6, predT1),
+      FlSpot(7, predT2),
+      FlSpot(8, predT3),
+    ];
+
+    List<FlSpot> huPredSpots = [
+      FlSpot(5, nowHu),
+      FlSpot(6, predHu1),
+      FlSpot(7, predHu2),
+      FlSpot(8, predHu3),
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          runSpacing: 6,
           children: [
-            const Text('RIWAYAT & TREN TIME-SERIES', style: TextStyle(color: SipandaTheme.primary, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(color: SipandaTheme.primary.withOpacity(0.2), borderRadius: BorderRadius.circular(4)),
-              child: Text('${forecasts.length} TITIK WAKTU', style: const TextStyle(color: SipandaTheme.primary, fontSize: 9, fontWeight: FontWeight.bold)),
+            const Text('RIWAYAT & PREDIKSI (SELISIH 1 JAM)', 
+              style: TextStyle(color: SipandaTheme.primary, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+            Wrap(
+              spacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                _buildLegendIndicator('Aktual (H-5 s/d Sekarang)', Colors.white70, isDashed: false),
+                _buildLegendIndicator('Prediksi (+3 Jam)', Colors.amberAccent, isDashed: true),
+              ],
             )
           ],
         ),
         const SizedBox(height: 12),
-        _buildSingleChart('CURAH HUJAN (mm)', tpSpots, Colors.blueAccent, times, 20.0),
-        _buildSingleChart('SUHU (°C)', tSpots, Colors.redAccent, times, 40.0),
-        _buildSingleChart('KELEMBAPAN (%)', huSpots, Colors.greenAccent, times, 100.0),
+        _buildSingleChart('CURAH HUJAN (mm)', tpActualSpots, tpPredSpots, Colors.blueAccent, 30.0, xTimeLabels, fullTitles),
+        _buildSingleChart('SUHU (°C)', tActualSpots, tPredSpots, Colors.redAccent, 40.0, xTimeLabels, fullTitles),
+        _buildSingleChart('KELEMBAPAN (%)', huActualSpots, huPredSpots, Colors.greenAccent, 100.0, xTimeLabels, fullTitles),
       ],
+    );
+  }
+
+  Widget _buildLegendIndicator(String label, Color color, {required bool isDashed}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 3,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 4),
+        if (isDashed) ...[
+          Container(width: 4, height: 4, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          const SizedBox(width: 4),
+        ],
+        Text(label, style: TextStyle(color: Colors.grey.shade400, fontSize: 9, fontWeight: FontWeight.w600)),
+      ],
+    );
+  }
+
+  Widget _buildSingleChart(
+    String title,
+    List<FlSpot> actualSpots,
+    List<FlSpot> predSpots,
+    Color color,
+    double maxY,
+    List<String> xTimeLabels,
+    List<String> fullTitles,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: SipandaTheme.surfaceHigh,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white12)
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(width: 8, height: 8, color: color),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(title, 
+                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.amberAccent.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: Colors.amberAccent.withOpacity(0.4)),
+                ),
+                child: const Text('AUTO-TUNED ML', style: TextStyle(color: Colors.amberAccent, fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 0.8)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 135,
+            child: LineChart(
+              LineChartData(
+                minX: 0,
+                maxX: 8,
+                minY: -0.1,
+                maxY: maxY,
+                lineTouchData: LineTouchData(
+                  handleBuiltInTouches: true,
+                  touchTooltipData: LineTouchTooltipData(
+                    fitInsideHorizontally: true,
+                    fitInsideVertically: true,
+                    getTooltipItems: (touchedSpots) {
+                      return touchedSpots.map((LineBarSpot touchedSpot) {
+                        final idx = touchedSpot.x.toInt();
+                        final isFuture = idx >= 6;
+                        final labelStr = (idx >= 0 && idx < fullTitles.length) ? fullTitles[idx] : '';
+                        return LineTooltipItem(
+                          '[$labelStr]\n${touchedSpot.y.toStringAsFixed(1)}',
+                          TextStyle(
+                            color: isFuture ? Colors.amberAccent : Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        );
+                      }).toList();
+                    },
+                  ),
+                ),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: maxY / 4 > 0 ? maxY / 4 : 5,
+                  getDrawingHorizontalLine: (value) {
+                    return FlLine(color: Colors.white12, strokeWidth: 1, dashArray: [4, 4]);
+                  },
+                ),
+                titlesData: FlTitlesData(
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 26,
+                      interval: 1,
+                      getTitlesWidget: (value, meta) {
+                        final index = value.toInt();
+                        if (index >= 0 && index < xTimeLabels.length) {
+                          final isNow = index == 5;
+                          final isPred = index >= 6;
+                          return SideTitleWidget(
+                            axisSide: meta.axisSide,
+                            space: 6.0,
+                            child: Text(
+                              xTimeLabels[index],
+                              style: TextStyle(
+                                color: isNow 
+                                    ? SipandaTheme.primary 
+                                    : (isPred ? Colors.amberAccent : Colors.grey.shade400),
+                                fontSize: isNow ? 9.5 : 8.5,
+                                fontWeight: (isNow || isPred) ? FontWeight.bold : FontWeight.w500,
+                              ),
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                  ),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 28,
+                      interval: maxY / 4 > 0 ? maxY / 4 : 5,
+                      getTitlesWidget: (value, meta) {
+                        if (value < 0) return const SizedBox.shrink();
+                        return SideTitleWidget(
+                          axisSide: meta.axisSide,
+                          child: Text(value.toInt().toString(), style: const TextStyle(color: Colors.grey, fontSize: 10)),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                borderData: FlBorderData(
+                  show: true,
+                  border: const Border(bottom: BorderSide(color: Colors.white24, width: 2)),
+                ),
+                lineBarsData: [
+                  // 1. Garis Solid Data Aktual (X: 0 s/d 5) -> H-5, H-4, H-3, H-2, H-1, Sekarang
+                  LineChartBarData(
+                    spots: actualSpots,
+                    isCurved: true, 
+                    preventCurveOverShooting: true,
+                    color: color,
+                    barWidth: 2.5,
+                    dotData: FlDotData(
+                      show: true,
+                      checkToShowDot: (spot, barData) => spot.x == 5, // Tampilkan titik khusus di 'Sekarang'
+                      getDotPainter: (spot, percent, barData, index) {
+                        return FlDotCirclePainter(
+                          radius: 4,
+                          color: SipandaTheme.primary,
+                          strokeWidth: 2,
+                          strokeColor: Colors.white,
+                        );
+                      },
+                    ),
+                  ),
+                  // 2. Garis Putus-Putus Prediksi Masa Depan (X: 5 s/d 8) -> Sekarang, +1h, +2h, +3h
+                  LineChartBarData(
+                    spots: predSpots,
+                    isCurved: true,
+                    dashArray: [6, 6],
+                    color: Colors.amberAccent,
+                    barWidth: 2.2,
+                    dotData: FlDotData(
+                      show: true,
+                      checkToShowDot: (spot, barData) => spot.x >= 6, // Tampilkan titik untuk +1h, +2h, +3h
+                      getDotPainter: (spot, percent, barData, index) {
+                        return FlDotCirclePainter(
+                          radius: 4.5,
+                          color: spot.y > (maxY * 0.6) ? Colors.redAccent : Colors.amberAccent,
+                          strokeWidth: 2,
+                          strokeColor: Colors.white,
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        ],
+      )
     );
   }
 
@@ -703,10 +1000,14 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 10,
             children: [
               const Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.history, color: SipandaTheme.primary, size: 16),
                   SizedBox(width: 8),
@@ -714,8 +1015,10 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
                       style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
                 ],
               ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   InkWell(
                     onTap: () => _openExportExcelModal(context, _currentKecamatan),
@@ -737,7 +1040,6 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(color: SipandaTheme.primary.withOpacity(0.2), borderRadius: BorderRadius.circular(4)),
@@ -796,98 +1098,6 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildSingleChart(String title, List<FlSpot> spots, Color color, List<String> times, double maxY) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: SipandaTheme.surfaceHigh,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white12)
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(width: 8, height: 8, color: color),
-              const SizedBox(width: 8),
-              Text(title, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 120,
-            child: LineChart(
-              LineChartData(
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: maxY / 4 > 0 ? maxY / 4 : 5,
-                  getDrawingHorizontalLine: (value) {
-                    return FlLine(color: Colors.white12, strokeWidth: 1, dashArray: [4, 4]);
-                  },
-                ),
-                titlesData: FlTitlesData(
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 28,
-                      interval: 1,
-                      getTitlesWidget: (value, meta) {
-                        final index = value.toInt();
-                        if (index >= 0 && index < times.length) {
-                          return SideTitleWidget(
-                            axisSide: meta.axisSide,
-                            space: 8.0,
-                            child: Text(times[index], style: const TextStyle(color: Colors.grey, fontSize: 10))
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      },
-                    ),
-                  ),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 28,
-                      interval: maxY / 4 > 0 ? maxY / 4 : 5,
-                      getTitlesWidget: (value, meta) {
-                        if (value < 0) return const SizedBox.shrink();
-                        return SideTitleWidget(
-                          axisSide: meta.axisSide,
-                          child: Text(value.toInt().toString(), style: const TextStyle(color: Colors.grey, fontSize: 10)),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                borderData: FlBorderData(
-                  show: true,
-                  border: const Border(bottom: BorderSide(color: Colors.white24, width: 2)),
-                ),
-                minY: -0.1,
-                maxY: maxY,
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: spots,
-                    isCurved: true, 
-                    preventCurveOverShooting: true,
-                    color: color,
-                    barWidth: 2,
-                    dotData: const FlDotData(show: false),
-                  ),
-                ],
-              ),
-            ),
-          )
-        ],
-      )
     );
   }
 

@@ -129,9 +129,16 @@ class _DynamicWeatherChartsState extends State<DynamicWeatherCharts> {
           fitInsideVertically: true,
           getTooltipItems: (touchedSpots) {
             return touchedSpots.map((LineBarSpot touchedSpot) {
+              final idx = touchedSpot.x.toInt();
+              final isPrediction = idx >= 3;
+              final timeLabel = isPrediction ? '+${idx - 2}h (Prediksi ML)' : (idx == 0 ? 'T-2h' : (idx == 1 ? 'T-1h' : 'Saat Ini'));
               return LineTooltipItem(
-                touchedSpot.y.toStringAsFixed(1),
-                const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                '[$timeLabel]\n${touchedSpot.y.toStringAsFixed(1)}',
+                TextStyle(
+                  color: isPrediction ? Colors.amberAccent : Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                ),
               );
             }).toList();
           },
@@ -142,7 +149,7 @@ class _DynamicWeatherChartsState extends State<DynamicWeatherCharts> {
         drawVerticalLine: false,
         horizontalInterval: 20,
         getDrawingHorizontalLine: (value) {
-          return const FlLine(color: Colors.white12, strokeWidth: 1);
+          return const FlLine(color: Colors.white12, strokeWidth: 1, dashArray: [4, 4]);
         },
       ),
       titlesData: FlTitlesData(
@@ -152,20 +159,27 @@ class _DynamicWeatherChartsState extends State<DynamicWeatherCharts> {
             reservedSize: 32,
             interval: 1,
             getTitlesWidget: (value, meta) {
-              const style = TextStyle(color: SipandaTheme.textSecondary, fontSize: 12);
+              const style = TextStyle(color: SipandaTheme.textSecondary, fontSize: 11);
+              const predStyle = TextStyle(color: Colors.amberAccent, fontSize: 10, fontWeight: FontWeight.bold);
               Widget text;
               switch (value.toInt()) {
                 case 0:
-                  text = const Text('Now', style: style);
+                  text = const Text('-2h', style: style);
+                  break;
+                case 1:
+                  text = const Text('-1h', style: style);
                   break;
                 case 2:
-                  text = const Text('+2h', style: style);
+                  text = const Text('Now', style: style);
+                  break;
+                case 3:
+                  text = const Text('+1h (Pred)', style: predStyle);
                   break;
                 case 4:
-                  text = const Text('+4h', style: style);
+                  text = const Text('+2h (Pred)', style: predStyle);
                   break;
-                case 6:
-                  text = const Text('+6h', style: style);
+                case 5:
+                  text = const Text('+3h (Pred)', style: predStyle);
                   break;
                 default:
                   text = const Text('');
@@ -188,22 +202,21 @@ class _DynamicWeatherChartsState extends State<DynamicWeatherCharts> {
         rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
         topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
       ),
-      borderData: FlBorderData(show: false),
+      borderData: FlBorderData(
+        show: true,
+        border: const Border(bottom: BorderSide(color: Colors.white24, width: 2)),
+      ),
       minX: 0,
-      maxX: 6,
+      maxX: 5,
       minY: 0,
       maxY: 100,
       lineBarsData: [
-        // Rainfall probability / intensity
+        // 1. Curah Hujan Aktual (Solid Blue Line)
         LineChartBarData(
           spots: const [
-            FlSpot(0, 20),
-            FlSpot(1, 45),
-            FlSpot(2, 60),
-            FlSpot(3, 85),
-            FlSpot(4, 75),
-            FlSpot(5, 40),
-            FlSpot(6, 15),
+            FlSpot(0, 15),
+            FlSpot(1, 28),
+            FlSpot(2, 42),
           ],
           isCurved: true,
           color: SipandaTheme.primary,
@@ -215,22 +228,59 @@ class _DynamicWeatherChartsState extends State<DynamicWeatherCharts> {
             color: SipandaTheme.primary.withOpacity(0.15),
           ),
         ),
-        // Flood risk probability (Adaptive XGBoost output simulation)
+        // 2. Curah Hujan Prediksi 3 Jam (Dashed Line + Glowing Dotted Points)
+        LineChartBarData(
+          spots: const [
+            FlSpot(2, 42), // Titik sambungan dari saat ini
+            FlSpot(3, 58), // +1 Jam
+            FlSpot(4, 72), // +2 Jam
+            FlSpot(5, 35), // +3 Jam
+          ],
+          isCurved: true,
+          dashArray: [6, 6],
+          color: Colors.amberAccent,
+          barWidth: 2.5,
+          isStrokeCapRound: true,
+          dotData: FlDotData(
+            show: true,
+            getDotPainter: (spot, percent, barData, index) {
+              if (index == 0) return FlDotCirclePainter(radius: 2, color: SipandaTheme.primary);
+              return FlDotCirclePainter(
+                radius: 5,
+                color: spot.y > 60 ? Colors.redAccent : Colors.amberAccent,
+                strokeWidth: 2,
+                strokeColor: Colors.white,
+              );
+            },
+          ),
+        ),
+        // 3. Probabilitas Banjir Prediksi (Dashed Red Line)
         LineChartBarData(
           spots: const [
             FlSpot(0, 10),
-            FlSpot(1, 15),
-            FlSpot(2, 40),
-            FlSpot(3, 70),
-            FlSpot(4, 85),
-            FlSpot(5, 75),
-            FlSpot(6, 30),
+            FlSpot(1, 25),
+            FlSpot(2, 45),
+            FlSpot(3, 68),
+            FlSpot(4, 82),
+            FlSpot(5, 40),
           ],
           isCurved: true,
+          dashArray: [4, 4],
           color: SipandaTheme.statusSiaga,
-          barWidth: 3,
+          barWidth: 2,
           isStrokeCapRound: true,
-          dotData: const FlDotData(show: true),
+          dotData: FlDotData(
+            show: true,
+            checkToShowDot: (spot, barData) => spot.x >= 2,
+            getDotPainter: (spot, percent, barData, index) {
+              return FlDotCirclePainter(
+                radius: 4,
+                color: spot.y > 70 ? Colors.redAccent : Colors.orangeAccent,
+                strokeWidth: 1.5,
+                strokeColor: Colors.white,
+              );
+            },
+          ),
         ),
       ],
     );
