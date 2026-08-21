@@ -548,28 +548,10 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
                 ],
               ),
             ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () => _openExportExcelModal(context, _currentKecamatan),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF107C41),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    elevation: 2,
-                  ),
-                  icon: const Icon(Icons.table_view_rounded, size: 16, color: Colors.white),
-                  label: const Text('Export Excel', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: SipandaTheme.surfaceHigh, borderRadius: BorderRadius.circular(8)),
-                  child: const Icon(Icons.thunderstorm, color: SipandaTheme.primary),
-                ),
-              ],
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: SipandaTheme.surfaceHigh, borderRadius: BorderRadius.circular(8)),
+              child: const Icon(Icons.thunderstorm, color: SipandaTheme.primary),
             ),
           ],
         ),
@@ -603,7 +585,7 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
 
         const SizedBox(height: 24),
 
-        _buildRecentTransmissions(currentForecast, displayKecamatan),
+        _buildExportExcelSection(displayKecamatan),
       ],
     );
   }
@@ -909,69 +891,59 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
     );
   }
 
-  Widget _buildRecentTransmissions(WeatherData? currentForecast, String displayKecamatan) {
-    if (currentForecast == null) return const SizedBox();
-
-    final weatherDesc = currentForecast.weatherDesc;
-    final isRain = weatherDesc.toLowerCase().contains('hujan') || currentForecast.tp > 0;
-    
-    String textDesc;
-    if (isRain) {
-       textDesc = '$weatherDesc diprediksi untuk wilayah $displayKecamatan.';
-    } else {
-       textDesc = 'Kondisi cuaca terpantau $weatherDesc untuk wilayah $displayKecamatan.';
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('TRANSMISI DATA TERKINI', style: TextStyle(fontSize: 10, color: Colors.grey, letterSpacing: 1.5)),
-        const SizedBox(height: 12),
-        _transmissionItem(_getWeatherIcon(weatherDesc), 'Telemetry Update', textDesc, 'Just now')
-      ],
-    );
-  }
-
-  IconData _getWeatherIcon(String weatherDesc) {
-    final desc = weatherDesc.toLowerCase();
-    if (desc.contains('cerah berawan')) return Icons.wb_cloudy_outlined;
-    if (desc.contains('cerah')) return Icons.wb_sunny;
-    if (desc.contains('hujan petir')) return Icons.thunderstorm;
-    if (desc.contains('hujan lebat')) return Icons.water_drop;
-    if (desc.contains('hujan')) return Icons.grain;
-    if (desc.contains('kabut')) return Icons.foggy;
-    return Icons.cloud;
-  }
-
-  Widget _transmissionItem(IconData icon, String title, String desc, String time) {
+  Widget _buildExportExcelSection(String displayKecamatan) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: SipandaTheme.surfaceHigh.withOpacity(0.5),
+        color: SipandaTheme.surfaceHigh,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF107C41).withOpacity(0.4)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: SipandaTheme.surface, borderRadius: BorderRadius.circular(8)),
-            child: Icon(icon, color: Colors.grey)
+          const Row(
+            children: [
+              Icon(Icons.table_view_rounded, color: Color(0xFF81C784), size: 18),
+              SizedBox(width: 8),
+              Text(
+                'EKSPOR LAPORAN SPREADSHEET',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                const SizedBox(height: 4),
-                Text(desc, style: const TextStyle(color: Colors.grey, fontSize: 11)),
-              ],
-            )
+          const SizedBox(height: 6),
+          Text(
+            'Unduh berkas log telemetri cuaca dan historis wilayah $displayKecamatan dalam format Microsoft Excel (.xlsx) dengan rentang tanggal pilihan Anda.',
+            style: TextStyle(color: Colors.grey.shade400, fontSize: 11, height: 1.4),
           ),
-          Text(time, style: const TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.bold))
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => _openExportExcelModal(context, _currentKecamatan),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF107C41),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                elevation: 2,
+              ),
+              icon: const Icon(Icons.file_download, size: 18, color: Colors.white),
+              label: const Text(
+                'Export Excel Wilayah Ini',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+              ),
+            ),
+          ),
         ],
-      )
+      ),
     );
   }
 

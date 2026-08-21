@@ -84,12 +84,12 @@ class ExcelExportService {
     );
 
     // 1. Report Title & Header Information
-    sheet.merge(CellIndex.indexByString('A1'), CellIndex.indexByString('K1'));
+    sheet.merge(CellIndex.indexByString('A1'), CellIndex.indexByString('I1'));
     var cellA1 = sheet.cell(CellIndex.indexByString('A1'));
     cellA1.value = TextCellValue('SIPANDA - SISTEM INTEGRASI PERINGATAN DINI ADAPTIF KOTA SEMARANG');
     cellA1.cellStyle = titleStyle;
 
-    sheet.merge(CellIndex.indexByString('A2'), CellIndex.indexByString('K2'));
+    sheet.merge(CellIndex.indexByString('A2'), CellIndex.indexByString('I2'));
     var cellA2 = sheet.cell(CellIndex.indexByString('A2'));
     cellA2.value = TextCellValue('LAPORAN LOG TELEMETRI & HISTORIS CUACA WILAYAH');
     cellA2.cellStyle = titleStyle;
@@ -111,7 +111,7 @@ class ExcelExportService {
     sheet.cell(CellIndex.indexByString('A7')).cellStyle = subHeaderStyle;
     sheet.cell(CellIndex.indexByString('B7')).value = TextCellValue('BMKG Open Data & SiPanda Telemetry Engine');
 
-    // 2. Table Headers
+    // 2. Table Headers (Updated: Focused on weather parameters with explanation for each)
     final headers = [
       'No',
       'Waktu Log (WIB)',
@@ -121,9 +121,7 @@ class ExcelExportService {
       'Suhu (°C)',
       'Kategori Suhu',
       'Kelembapan (%)',
-      'Kondisi Cuaca',
-      'Status Risiko ML',
-      'Probabilitas Banjir (%)'
+      'Status Kelembapan',
     ];
 
     int rowIndex = 8;
@@ -141,9 +139,6 @@ class ExcelExportService {
         'rainfall': h.rainfall,
         'temp': h.temp,
         'humidity': h.humidity,
-        'weather_desc': h.weatherDesc,
-        'risk': h.mlRiskLevel.name.toUpperCase(),
-        'flood_prob': h.floodProbability,
       });
     }
 
@@ -166,9 +161,6 @@ class ExcelExportService {
             'rainfall': f.tp,
             'temp': f.t,
             'humidity': f.hu,
-            'weather_desc': f.weatherDesc,
-            'risk': f.tp > 10 ? 'SIAGA' : (f.tp >= 5 ? 'WASPADA' : 'AMAN'),
-            'flood_prob': f.tp > 10 ? 80.0 : (f.tp >= 5 ? 45.0 : 10.0),
           });
         }
       }
@@ -178,9 +170,6 @@ class ExcelExportService {
     double maxRain = 0;
     double totalTemp = 0;
     double totalHu = 0;
-    int siagaCount = 0;
-    int waspadaCount = 0;
-    int amanCount = 0;
 
     rowIndex++;
 
@@ -190,22 +179,11 @@ class ExcelExportService {
       final rainfall = (row['rainfall'] as num).toDouble();
       final temp = (row['temp'] as num).toDouble();
       final humidity = (row['humidity'] as num).toDouble();
-      final weatherDesc = row['weather_desc'] as String;
-      final risk = (row['risk'] as String).toUpperCase();
-      final floodProb = (row['flood_prob'] as num).toDouble();
 
       totalRain += rainfall;
       if (rainfall > maxRain) maxRain = rainfall;
       totalTemp += temp;
       totalHu += humidity;
-
-      if (risk == 'SIAGA') {
-        siagaCount++;
-      } else if (risk == 'WASPADA') {
-        waspadaCount++;
-      } else {
-        amanCount++;
-      }
 
       String rainCategory = 'Cerah / Ringan';
       if (rainfall > 10) {
@@ -221,6 +199,13 @@ class ExcelExportService {
         tempCategory = 'Panas';
       }
 
+      String huCategory = 'Lembap';
+      if (humidity < 40) {
+        huCategory = 'Kering';
+      } else if (humidity <= 60) {
+        huCategory = 'Sedang';
+      }
+
       final rowValues = [
         IntCellValue(i + 1),
         TextCellValue('${shortDateFormatter.format(time)} WIB'),
@@ -230,18 +215,16 @@ class ExcelExportService {
         DoubleCellValue(temp),
         TextCellValue(tempCategory),
         DoubleCellValue(humidity),
-        TextCellValue(weatherDesc),
-        TextCellValue(risk),
-        DoubleCellValue(floodProb),
+        TextCellValue(huCategory),
       ];
 
       for (int col = 0; col < rowValues.length; col++) {
         var cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex));
         cell.value = rowValues[col];
 
-        if (col == 0 || col == 1 || col == 4 || col == 6 || col == 8 || col == 9) {
+        if (col == 0 || col == 1 || col == 4 || col == 6 || col == 8) {
           cell.cellStyle = dataRowCenterStyle;
-        } else if (col == 3 || col == 5 || col == 7 || col == 10) {
+        } else if (col == 3 || col == 5 || col == 7) {
           cell.cellStyle = dataRowNumberStyle;
         } else {
           cell.cellStyle = dataRowStyle;
@@ -300,8 +283,6 @@ class ExcelExportService {
     addSummaryRow('Total Akumulasi Curah Hujan', '${totalRain.toStringAsFixed(1)} mm');
     addSummaryRow('Rata-rata Curah Hujan', '$avgRain mm');
     addSummaryRow('Curah Hujan Maksimum', '${maxRain.toStringAsFixed(1)} mm');
-    addSummaryRow('Frekuensi Status Risiko', '$amanCount Aman | $waspadaCount Waspada | $siagaCount Siaga');
-    addSummaryRow('Status Risiko Tertinggi', siagaCount > 0 ? 'SIAGA' : (waspadaCount > 0 ? 'WASPADA' : 'AMAN'));
 
     // Set column widths
     sheet.setColumnWidth(0, 8);
@@ -312,9 +293,7 @@ class ExcelExportService {
     sheet.setColumnWidth(5, 14);
     sheet.setColumnWidth(6, 16);
     sheet.setColumnWidth(7, 16);
-    sheet.setColumnWidth(8, 22);
-    sheet.setColumnWidth(9, 18);
-    sheet.setColumnWidth(10, 24);
+    sheet.setColumnWidth(8, 20);
 
     final fileBytes = excel.save();
     if (fileBytes != null) {
