@@ -1243,12 +1243,19 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
                                   });
 
                                   try {
-                                    // 1. Fetch History from DB for this range
-                                    final historyLogs = await _dbService.getDistrictHistoryByDateRange(
-                                      docId,
-                                      startDate: selectedRange.start,
-                                      endDate: selectedRange.end,
-                                    );
+                                    // 1. Fetch History from DB for this range with a 3s timeout
+                                    List<DistrictHistoryData> historyLogs = [];
+                                    try {
+                                      historyLogs = await _dbService
+                                          .getDistrictHistoryByDateRange(
+                                            docId,
+                                            startDate: selectedRange.start,
+                                            endDate: selectedRange.end,
+                                          )
+                                          .timeout(const Duration(seconds: 3), onTimeout: () => []);
+                                    } catch (err) {
+                                      debugPrint("History range fetch fallback: $err");
+                                    }
 
                                     // 2. Get forecast logs
                                     final forecastLogs = BmkgService.getHistoryForecast(rawKecamatan);
@@ -1283,7 +1290,8 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
                                         ),
                                       );
                                     }
-                                  } catch (e) {
+                                  } catch (e, stack) {
+                                    debugPrint("Error exporting excel: $e\n$stack");
                                     setDialogState(() {
                                       isExporting = false;
                                     });
