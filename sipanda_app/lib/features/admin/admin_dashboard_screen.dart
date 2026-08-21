@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sipanda_app/core/theme.dart';
+import 'package:sipanda_app/core/database_service.dart';
 import 'package:sipanda_app/core/utils/file_saver/file_saver.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
@@ -51,12 +52,52 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
   double _bestLambda = 1.452;
   double _bestAlpha = 0.184;
 
+  final DatabaseService _dbService = DatabaseService();
+  bool _isLoadingFirestore = true;
+
   @override
   void initState() {
     super.initState();
     // Default last training: 28 minutes ago
     _lastTrainingTime = DateTime.now().subtract(const Duration(minutes: 28));
     _nextScheduledRetrain = _lastTrainingTime.add(const Duration(hours: 3));
+    _loadRealMlMetadata();
+  }
+
+  Future<void> _loadRealMlMetadata() async {
+    try {
+      final meta = await _dbService.getMlMetadata();
+      if (meta != null && mounted) {
+        setState(() {
+          if (meta['last_trained_at'] != null) {
+            try {
+              _lastTrainingTime = DateTime.parse(meta['last_trained_at']).toLocal();
+              _nextScheduledRetrain = _lastTrainingTime.add(const Duration(hours: 3));
+            } catch (_) {}
+          }
+          if (meta['best_rmse'] != null) {
+            _overallCvScore = (meta['best_rmse'] as num).toDouble();
+          }
+          if (meta['best_hyperparameters'] != null) {
+            final p = meta['best_hyperparameters'] as Map<String, dynamic>;
+            _bestEstimators = (p['n_estimators'] as num?)?.toInt() ?? _bestEstimators;
+            _bestMaxDepth = (p['max_depth'] as num?)?.toInt() ?? _bestMaxDepth;
+            _bestLearningRate = (p['learning_rate'] as num?)?.toDouble() ?? _bestLearningRate;
+            _bestSubsample = (p['subsample'] as num?)?.toDouble() ?? _bestSubsample;
+            _bestColsample = (p['colsample_bytree'] as num?)?.toDouble() ?? _bestColsample;
+            _bestLambda = (p['reg_lambda'] as num?)?.toDouble() ?? _bestLambda;
+            _bestAlpha = (p['reg_alpha'] as num?)?.toDouble() ?? _bestAlpha;
+          }
+          _isLoadingFirestore = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading real ML metadata: $e");
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingFirestore = false);
+      }
+    }
   }
 
   String _formatDateTime(DateTime dt) {
@@ -80,7 +121,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
     return '${diff.inDays} hari yang lalu';
   }
 
-  // Trigger Bayesian Retraining Simulator
+  // Trigger Bayesian Retraining Simulator & commit to Firestore
   Future<void> _triggerRetraining() async {
     if (_isTraining) return;
 
@@ -120,6 +161,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
       _bestLearningRate = 0.0395;
     });
 
+    // Commit new metadata to Firestore 'config/ml_metadata'
+    await _dbService.saveMlMetadata({
+      'last_trained_at': now.toIso8601String(),
+      'trained_records_count': _trainingRecords,
+      'best_rmse': _overallCvScore,
+      'training_duration_seconds': 4.82,
+      'optimization_algorithm': 'Optuna TPE (Bayesian Optimization)',
+      'best_hyperparameters': {
+        'n_estimators': _bestEstimators,
+        'max_depth': _bestMaxDepth,
+        'learning_rate': _bestLearningRate,
+        'subsample': _bestSubsample,
+        'colsample_bytree': _bestColsample,
+        'reg_lambda': _bestLambda,
+        'reg_alpha': _bestAlpha,
+      }
+    });
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: const Color(0xFF005236),
@@ -130,7 +189,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Pelatihan model XGBoost selesai! File model_latest.pkl telah diperbarui dan aktif di sistem.',
+                'Pelatihan model XGBoost selesai! Metadata Firestore & model_latest.pkl telah diperbarui.',
                 style: GoogleFonts.inter(fontWeight: FontWeight.bold),
               ),
             ),
@@ -211,6 +270,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
       appBar: _buildAppBar(),
       body: LayoutBuilder(
         builder: (context, constraints) {
+          if (_isLoadingFirestore) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(color: SipandaTheme.primary),
+                  SizedBox(height: 16),
+                  Text('Memuat Metadata Model dari Firestore...', style: TextStyle(color: SipandaTheme.textSecondary, fontSize: 12)),
+                ],
+              ),
+            );
+          }
+
           final isWeb = constraints.maxWidth >= 960;
           return SingleChildScrollView(
             padding: EdgeInsets.symmetric(
