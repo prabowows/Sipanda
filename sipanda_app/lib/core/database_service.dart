@@ -139,6 +139,80 @@ class DatabaseService {
     return list;
   }
 
+  // Fetch historical time-series logs filtered by date range for Excel Export
+  Future<List<DistrictHistoryData>> getDistrictHistoryByDateRange(
+    String districtId, {
+    required DateTime startDate,
+    required DateTime endDate,
+    int limit = 500,
+  }) async {
+    List<DistrictHistoryData> list = [];
+    final start = DateTime(startDate.year, startDate.month, startDate.day, 0, 0, 0);
+    final end = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59, 999);
+
+    if (_db != null) {
+      try {
+        final snapshot = await _db!
+            .collection('districts')
+            .doc(districtId)
+            .collection('history')
+            .orderBy('timestamp', descending: true)
+            .limit(limit)
+            .get();
+
+        if (snapshot.docs.isNotEmpty) {
+          final all = snapshot.docs
+              .map((doc) => DistrictHistoryData.fromFirestore(doc.data(), doc.id))
+              .toList();
+          return all.where((item) =>
+            item.timestamp.isAfter(start.subtract(const Duration(seconds: 1))) &&
+            item.timestamp.isBefore(end.add(const Duration(seconds: 1)))
+          ).toList()..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+        }
+      } catch (e) {
+        debugPrint("Firestore range fetch error: $e");
+      }
+    }
+
+    // Fallback via REST API
+    try {
+      final url = 'https://firestore.googleapis.com/v1/projects/sipanda-semarang/databases/(default)/documents/districts/$districtId/history?pageSize=100';
+      final res = await http.get(Uri.parse(url));
+      if (res.statusCode == 200) {
+        final json = jsonDecode(res.body);
+        if (json['documents'] != null) {
+          for (var doc in json['documents']) {
+            final nameParts = (doc['name'] as String).split('/');
+            final docId = nameParts.last;
+            final fields = doc['fields'] ?? {};
+
+            Map<String, dynamic> rawMap = {
+              'timestamp': fields['timestamp']?['timestampValue'] ?? DateTime.now().toIso8601String(),
+              'rainfall': _parseNum(fields['rainfall'], 0),
+              'temp': _parseNum(fields['temp'], 28),
+              'humidity': _parseNum(fields['humidity'], 75),
+              'flood_prob': _parseNum(fields['flood_prob'], 10),
+              'ml_risk': fields['ml_risk']?['stringValue'] ?? 'aman',
+              'weather_desc': fields['weather_desc']?['stringValue'] ?? 'Cerah',
+            };
+
+            final item = DistrictHistoryData.fromFirestore(rawMap, docId);
+            if (item.timestamp.isAfter(start.subtract(const Duration(seconds: 1))) &&
+                item.timestamp.isBefore(end.add(const Duration(seconds: 1)))) {
+              list.add(item);
+            }
+          }
+          list.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+          return list;
+        }
+      }
+    } catch (e) {
+      debugPrint("REST API range history fetch error: $e");
+    }
+
+    return list;
+  }
+
   // Set Manual Override from Admin Dashboard
   Future<void> setOverride(String districtId, RiskLevel newRisk) async {
     if (_db != null) {

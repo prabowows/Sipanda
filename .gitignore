@@ -11,3 +11,4 @@ build/
 .pub/
 Kecamatan.json
 semarang.geojson
+.firebase/

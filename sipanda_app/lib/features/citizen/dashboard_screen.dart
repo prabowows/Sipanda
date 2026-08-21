@@ -1,11 +1,13 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 import 'package:sipanda_app/core/theme.dart';
 import 'package:sipanda_app/features/citizen/widgets/map_risk_layer.dart';
 import 'package:sipanda_app/core/services/bmkg_service.dart';
 import 'package:sipanda_app/core/database_service.dart';
 import 'package:sipanda_app/models/district_data.dart';
+import 'package:sipanda_app/core/utils/excel_export_service.dart';
 
 class CitizenDashboardScreen extends StatefulWidget {
   const CitizenDashboardScreen({super.key});
@@ -535,19 +537,40 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(displayKecamatan, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                  Text('Data Real-Time Terverifikasi', style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+                ],
+              ),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(displayKecamatan, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                Text('Data Real-Time Terverifikasi', style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+                ElevatedButton.icon(
+                  onPressed: () => _openExportExcelModal(context, _currentKecamatan),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF107C41),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    elevation: 2,
+                  ),
+                  icon: const Icon(Icons.table_view_rounded, size: 16, color: Colors.white),
+                  label: const Text('Export Excel', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: SipandaTheme.surfaceHigh, borderRadius: BorderRadius.circular(8)),
+                  child: const Icon(Icons.thunderstorm, color: SipandaTheme.primary),
+                ),
               ],
             ),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: SipandaTheme.surfaceHigh, borderRadius: BorderRadius.circular(8)),
-              child: const Icon(Icons.thunderstorm, color: SipandaTheme.primary),
-            )
           ],
         ),
         const SizedBox(height: 16),
@@ -709,11 +732,37 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
                       style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(color: SipandaTheme.primary.withOpacity(0.2), borderRadius: BorderRadius.circular(4)),
-                child: Text('${forecasts.length} ENTRI LOG', style: const TextStyle(color: SipandaTheme.primary, fontSize: 9, fontWeight: FontWeight.bold)),
-              )
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  InkWell(
+                    onTap: () => _openExportExcelModal(context, _currentKecamatan),
+                    borderRadius: BorderRadius.circular(4),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF107C41).withOpacity(0.25),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: const Color(0xFF107C41)),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.file_download, color: Color(0xFF81C784), size: 12),
+                          SizedBox(width: 4),
+                          Text('Unduh Excel', style: TextStyle(color: Color(0xFF81C784), fontSize: 9, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(color: SipandaTheme.primary.withOpacity(0.2), borderRadius: BorderRadius.circular(4)),
+                    child: Text('${forecasts.length} ENTRI LOG', style: const TextStyle(color: SipandaTheme.primary, fontSize: 9, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -970,6 +1019,337 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
           IconButton(icon: const Icon(Icons.history, color: Colors.grey), onPressed: () => Navigator.pushNamed(context, '/history')),
           IconButton(icon: const Icon(Icons.admin_panel_settings, color: Colors.grey), onPressed: () => Navigator.pushNamed(context, '/admin')),
         ],
+      ),
+    );
+  }
+
+  Future<void> _openExportExcelModal(BuildContext context, String rawKecamatan) async {
+    if (rawKecamatan.isEmpty) return;
+    final displayKecamatan = rawKecamatan.toUpperCase();
+    final docId = rawKecamatan.toLowerCase().trim().replaceAll(' ', '_');
+
+    DateTimeRange selectedRange = DateTimeRange(
+      start: DateTime.now().subtract(const Duration(days: 7)),
+      end: DateTime.now(),
+    );
+
+    bool isExporting = false;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            final startFormatted = DateFormat('dd MMM yyyy').format(selectedRange.start);
+            final endFormatted = DateFormat('dd MMM yyyy').format(selectedRange.end);
+            final daysCount = selectedRange.duration.inDays + 1;
+
+            return Dialog(
+              backgroundColor: const Color(0xFF1E1E1E),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: const BorderSide(color: Colors.white24),
+              ),
+              child: Container(
+                width: 480,
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF107C41).withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFF107C41)),
+                          ),
+                          child: const Icon(Icons.table_view_rounded, color: Color(0xFF107C41), size: 24),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Export Laporan Excel (.xlsx)',
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                              const SizedBox(height: 2),
+                              Text('Kecamatan $displayKecamatan',
+                                  style: const TextStyle(fontSize: 12, color: SipandaTheme.primary, fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.grey, size: 20),
+                          onPressed: () => Navigator.of(ctx).pop(),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    const Divider(color: Colors.white12, height: 1),
+                    const SizedBox(height: 16),
+
+                    const Text('PILIH RENTANG TANGGAL',
+                        style: TextStyle(fontSize: 10, color: Colors.grey, letterSpacing: 1.2, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 10),
+
+                    // Preset buttons
+                    Row(
+                      children: [
+                        _presetChip(
+                          label: 'Hari Ini',
+                          isSelected: selectedRange.duration.inDays == 0 &&
+                              selectedRange.end.day == DateTime.now().day,
+                          onTap: () {
+                            setDialogState(() {
+                              final now = DateTime.now();
+                              selectedRange = DateTimeRange(start: now, end: now);
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        _presetChip(
+                          label: '7 Hari',
+                          isSelected: selectedRange.duration.inDays == 7,
+                          onTap: () {
+                            setDialogState(() {
+                              final now = DateTime.now();
+                              selectedRange = DateTimeRange(start: now.subtract(const Duration(days: 7)), end: now);
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        _presetChip(
+                          label: '30 Hari',
+                          isSelected: selectedRange.duration.inDays == 30,
+                          onTap: () {
+                            setDialogState(() {
+                              final now = DateTime.now();
+                              selectedRange = DateTimeRange(start: now.subtract(const Duration(days: 30)), end: now);
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Interactive Date Range Card
+                    InkWell(
+                      onTap: () async {
+                        final picked = await showDateRangePicker(
+                          context: context,
+                          initialDateRange: selectedRange,
+                          firstDate: DateTime(2024, 1, 1),
+                          lastDate: DateTime.now().add(const Duration(days: 7)),
+                          builder: (context, child) {
+                            return Theme(
+                              data: ThemeData.dark().copyWith(
+                                colorScheme: const ColorScheme.dark(
+                                  primary: SipandaTheme.primary,
+                                  onPrimary: Colors.black,
+                                  surface: Color(0xFF222222),
+                                  onSurface: Colors.white,
+                                ),
+                                dialogBackgroundColor: const Color(0xFF1E1E1E),
+                              ),
+                              child: child!,
+                            );
+                          },
+                        );
+                        if (picked != null) {
+                          setDialogState(() {
+                            selectedRange = picked;
+                          });
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: SipandaTheme.surfaceHigh,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: SipandaTheme.primary.withOpacity(0.4)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.date_range, color: SipandaTheme.primary, size: 20),
+                                const SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('$startFormatted - $endFormatted',
+                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                                    const SizedBox(height: 2),
+                                    Text('Durasi: $daysCount Hari (Klik untuk ubah)',
+                                        style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            const Icon(Icons.edit_calendar_outlined, color: SipandaTheme.primary, size: 18),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.04),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white10),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.info_outline, color: Colors.grey, size: 14),
+                              SizedBox(width: 6),
+                              Text('Informasi Laporan Spreadsheet',
+                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text('• Berisi log curah hujan, suhu, kelembapan, kondisi cuaca, dan tingkat risiko banjir.',
+                              style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
+                          Text('• Dilengkapi ringkasan statistik dan akumulasi curah hujan otomatis.',
+                              style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: isExporting ? null : () => Navigator.of(ctx).pop(),
+                          child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton.icon(
+                          onPressed: isExporting
+                              ? null
+                              : () async {
+                                  setDialogState(() {
+                                    isExporting = true;
+                                  });
+
+                                  try {
+                                    // 1. Fetch History from DB for this range
+                                    final historyLogs = await _dbService.getDistrictHistoryByDateRange(
+                                      docId,
+                                      startDate: selectedRange.start,
+                                      endDate: selectedRange.end,
+                                    );
+
+                                    // 2. Get forecast logs
+                                    final forecastLogs = BmkgService.getHistoryForecast(rawKecamatan);
+
+                                    // 3. Export to Excel
+                                    final filePath = await ExcelExportService.exportDistrictWeatherToExcel(
+                                      districtName: rawKecamatan,
+                                      startDate: selectedRange.start,
+                                      endDate: selectedRange.end,
+                                      historyLogs: historyLogs,
+                                      forecastLogs: forecastLogs,
+                                    );
+
+                                    if (mounted) {
+                                      Navigator.of(ctx).pop();
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Row(
+                                            children: [
+                                              const Icon(Icons.check_circle, color: Colors.white),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Text(
+                                                  'Laporan Excel Kecamatan $displayKecamatan berhasil diunduh (${filePath ?? "SiPanda_Cuaca.xlsx"})!',
+                                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          backgroundColor: const Color(0xFF107C41),
+                                          duration: const Duration(seconds: 4),
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    setDialogState(() {
+                                      isExporting = false;
+                                    });
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Gagal mengekspor Excel: $e'),
+                                          backgroundColor: Colors.redAccent,
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF107C41),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          icon: isExporting
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                )
+                              : const Icon(Icons.file_download, size: 18),
+                          label: Text(
+                            isExporting ? 'Memproses...' : 'Unduh Excel (.xlsx)',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _presetChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF107C41).withOpacity(0.25) : Colors.white10,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: isSelected ? const Color(0xFF107C41) : Colors.white12),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? const Color(0xFF81C784) : Colors.white70,
+          ),
+        ),
       ),
     );
   }
