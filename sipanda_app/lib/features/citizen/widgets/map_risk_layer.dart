@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:math' as dart_math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_map/flutter_map.dart';
@@ -32,6 +31,7 @@ class RiskGisMapState extends State<RiskGisMap> with TickerProviderStateMixin {
   final Map<String, LatLng> _kecamatanCenters = {};
   
   LatLng? _searchedLocation;
+  LatLng? get searchedLocation => _searchedLocation;
   String? _searchedKecamatan;
   MapMode _currentMode = MapMode.hujan;
 
@@ -132,9 +132,6 @@ class RiskGisMapState extends State<RiskGisMap> with TickerProviderStateMixin {
       // Reverted to optimized GeoJSON (from 1GB back to 2MB) because the raw file caused OOM / Loading crashes
       final String jsonString = await rootBundle.loadString('assets/map/semarang_filtered.geojson');
       final Map<String, dynamic> geoJson = jsonDecode(jsonString);
-      
-      List<Polygon> loadedPolygons = [];
-      final random = dart_math.Random();
       
       // Parse Features
       if (geoJson['features'] != null) {
