@@ -156,24 +156,14 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
                         _isSidebarVisible = !_isSidebarVisible;
                       });
                     },
-                    child: const Icon(Icons.menu, color: SipandaTheme.primary, size: 24),
-                  ),
-                  const SizedBox(width: 16),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.asset(
-                      'assets/images/LogoSipanda.jpg',
-                      height: 52,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) => const Text(
-                        'SIPANDA',
-                        style: TextStyle(
-                          color: SipandaTheme.primary,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 2.0,
-                        ),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: SipandaTheme.primary.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: SipandaTheme.primary.withOpacity(0.3)),
                       ),
+                      child: const Icon(Icons.menu, color: SipandaTheme.primary, size: 22),
                     ),
                   ),
                 ],
