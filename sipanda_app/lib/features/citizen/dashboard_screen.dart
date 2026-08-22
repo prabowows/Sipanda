@@ -199,8 +199,8 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
                         Navigator.pushReplacementNamed(context, '/');
                       } else if (value == 'admin') {
                         Navigator.pushNamed(context, '/admin');
-                      } else if (value == 'history') {
-                        Navigator.pushNamed(context, '/history');
+                      } else {
+                        _showToBeDevelopedToast(context, 'Alert History');
                       }
                     },
                     itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
@@ -210,28 +210,31 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
                           children: [
                             Icon(Icons.dashboard, color: SipandaTheme.primary, size: 18),
                             SizedBox(width: 12),
-                            Text('Citizen Dashboard', style: TextStyle(color: Colors.white, fontSize: 13)),
+                            Text('Dashboard (Peta Resiko)', style: TextStyle(color: Colors.white, fontSize: 13)),
                           ],
                         ),
                       ),
                       const PopupMenuItem<String>(
-                        value: 'history',
+                        value: 'admin',
                         child: Row(
                           children: [
-                            Icon(Icons.history, color: Colors.amberAccent, size: 18),
+                            Icon(Icons.admin_panel_settings, color: Colors.greenAccent, size: 18),
                             SizedBox(width: 12),
-                            Text('Alert History', style: TextStyle(color: Colors.white, fontSize: 13)),
+                            Text('Admin Portal (ML Hub)', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),
                       const PopupMenuDivider(height: 1),
                       const PopupMenuItem<String>(
-                        value: 'admin',
+                        value: 'history',
                         child: Row(
                           children: [
-                            Icon(Icons.admin_panel_settings, color: Colors.redAccent, size: 18),
+                            Icon(Icons.history, color: Colors.white30, size: 18),
                             SizedBox(width: 12),
-                            Text('Admin Portal', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                            Expanded(
+                              child: Text('Alert History', style: TextStyle(color: Colors.white38, fontSize: 13)),
+                            ),
+                            Text('To be developed', style: TextStyle(color: Colors.white30, fontSize: 9)),
                           ],
                         ),
                       ),
@@ -424,6 +427,45 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
     );
   }
 
+  void _showToBeDevelopedToast(BuildContext context, String featureName) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF242424),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: const BorderSide(color: Colors.white24),
+        ),
+        content: Row(
+          children: [
+            const Icon(Icons.construction, color: Colors.amberAccent, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: RichText(
+                text: TextSpan(
+                  text: 'Fitur ',
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  children: [
+                    TextSpan(
+                      text: featureName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.amberAccent,
+                      ),
+                    ),
+                    const TextSpan(text: ' sedang dalam pengembangan (To be developed).'),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   Widget _buildSidebar() {
     return Container(
       width: 288,
@@ -460,29 +502,109 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
               ],
             )
           ),
-          const SizedBox(height: 32),
-          _sidebarItem(Icons.dashboard, 'Dashboard', isActive: true, onTap: () {}),
-          _sidebarItem(Icons.history, 'Alert History', onTap: () => Navigator.pushNamed(context, '/history')),
-          _sidebarItem(Icons.admin_panel_settings, 'Admin Portal', onTap: () => Navigator.pushNamed(context, '/admin')),
-          _sidebarItem(Icons.map, 'GIS Mapping'),
-          _sidebarItem(Icons.analytics, 'District Reports'),
-          _sidebarItem(Icons.terminal, 'System Logs'),
+          const SizedBox(height: 28),
+          
+          // 1. Dashboard (Utama)
+          _sidebarItem(
+            Icons.dashboard,
+            'Dashboard',
+            isActive: true,
+            onTap: () {},
+          ),
+          
+          // 2. Admin Portal (Tepat di bawah Dashboard!)
+          _sidebarItem(
+            Icons.admin_panel_settings,
+            'Admin Portal (ML Hub)',
+            iconColor: Colors.greenAccent,
+            onTap: () => Navigator.pushNamed(context, '/admin'),
+          ),
+
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: Divider(color: Colors.white10, height: 1),
+          ),
+
+          // 3. Fitur-fitur lain dengan aksen Disabled + Toast "To be developed"
+          _sidebarItem(Icons.history, 'Alert History', isDisabled: true),
+          _sidebarItem(Icons.map, 'GIS Risk Analysis', isDisabled: true),
+          _sidebarItem(Icons.analytics, 'District Reports', isDisabled: true),
+          _sidebarItem(Icons.videocam, 'CCTV & Water Level', isDisabled: true),
+          _sidebarItem(Icons.notifications_active, 'Emergency Broadcast', isDisabled: true),
+          _sidebarItem(Icons.terminal, 'System Logs', isDisabled: true),
         ],
       )
     );
   }
 
-  Widget _sidebarItem(IconData icon, String title, {bool isActive = false, VoidCallback? onTap}) {
+  Widget _sidebarItem(
+    IconData icon,
+    String title, {
+    bool isActive = false,
+    bool isDisabled = false,
+    Color? iconColor,
+    VoidCallback? onTap,
+  }) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
       decoration: BoxDecoration(
-        color: isActive ? SipandaTheme.primary.withOpacity(0.2) : Colors.transparent,
-        borderRadius: BorderRadius.circular(8)
+        color: isActive
+            ? SipandaTheme.primary.withOpacity(0.18)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        border: isActive
+            ? Border.all(color: SipandaTheme.primary.withOpacity(0.4))
+            : null,
       ),
       child: ListTile(
-        leading: Icon(icon, color: isActive ? SipandaTheme.primary : Colors.grey),
-        title: Text(title, style: TextStyle(color: isActive ? SipandaTheme.primary : Colors.grey, fontSize: 13, fontWeight: FontWeight.bold)),
-        onTap: onTap,
+        dense: true,
+        leading: Icon(
+          icon,
+          color: isActive
+              ? SipandaTheme.primary
+              : (isDisabled ? Colors.white30 : (iconColor ?? Colors.grey.shade300)),
+          size: 20,
+        ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  color: isActive
+                      ? SipandaTheme.primary
+                      : (isDisabled ? Colors.white38 : Colors.white),
+                  fontSize: 13,
+                  fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                ),
+              ),
+            ),
+            if (isDisabled)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: Colors.white12),
+                ),
+                child: const Text(
+                  'To be developed',
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        onTap: () {
+          if (isDisabled) {
+            _showToBeDevelopedToast(context, title);
+          } else if (onTap != null) {
+            onTap();
+          }
+        },
       ),
     );
   }
@@ -1197,9 +1319,26 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          IconButton(icon: const Icon(Icons.dashboard, color: SipandaTheme.primary), onPressed: () {}),
-          IconButton(icon: const Icon(Icons.history, color: Colors.grey), onPressed: () => Navigator.pushNamed(context, '/history')),
-          IconButton(icon: const Icon(Icons.admin_panel_settings, color: Colors.grey), onPressed: () => Navigator.pushNamed(context, '/admin')),
+          IconButton(
+            tooltip: 'Dashboard',
+            icon: const Icon(Icons.dashboard, color: SipandaTheme.primary),
+            onPressed: () {},
+          ),
+          IconButton(
+            tooltip: 'Admin Portal (ML Hub)',
+            icon: const Icon(Icons.admin_panel_settings, color: Colors.greenAccent),
+            onPressed: () => Navigator.pushNamed(context, '/admin'),
+          ),
+          IconButton(
+            tooltip: 'Alert History',
+            icon: const Icon(Icons.history, color: Colors.white24),
+            onPressed: () => _showToBeDevelopedToast(context, 'Alert History'),
+          ),
+          IconButton(
+            tooltip: 'GIS Mapping',
+            icon: const Icon(Icons.map, color: Colors.white24),
+            onPressed: () => _showToBeDevelopedToast(context, 'GIS Risk Analysis'),
+          ),
         ],
       ),
     );
