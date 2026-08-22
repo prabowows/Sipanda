@@ -231,6 +231,7 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
           child: _buildSearchBar(),
         ),
         
+        // Refresh button
         Positioned(
           top: 24,
           right: 16,
@@ -242,30 +243,6 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
             child: _isLoadingBmkg 
               ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: SipandaTheme.primary))
               : const Icon(Icons.refresh, color: SipandaTheme.primary),
-          ),
-        ),
-
-        Positioned(
-          top: 84,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              decoration: BoxDecoration(
-                color: SipandaTheme.statusAman.withOpacity(0.4), 
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: SipandaTheme.statusAman.withOpacity(0.5))
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(width: 8, height: 8, decoration: const BoxDecoration(color: SipandaTheme.statusAman, shape: BoxShape.circle)),
-                  const SizedBox(width: 8),
-                  const Text('AMAN', style: TextStyle(color: SipandaTheme.statusAman, fontWeight: FontWeight.bold, letterSpacing: 2))
-                ],
-              )
-            )
           ),
         ),
         

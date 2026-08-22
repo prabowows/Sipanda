@@ -421,25 +421,31 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
             child: const Icon(Icons.psychology, color: SipandaTheme.primary, size: 20),
           ),
           const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Admin ML Portal & Model Hub',
-                style: GoogleFonts.inter(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Admin ML Portal & Model Hub',
+                  style: GoogleFonts.inter(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              Text(
-                'Monitoring Status Model, Jadwal Retraining & Ekspor Pickle (.pkl)',
-                style: GoogleFonts.inter(
-                  fontSize: 11,
-                  color: SipandaTheme.textSecondary,
+                Text(
+                  'Monitoring Status Model, Jadwal Retraining & Ekspor Pickle (.pkl)',
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    color: SipandaTheme.textSecondary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -619,8 +625,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: const TextStyle(color: SipandaTheme.textSecondary, fontSize: 10)),
-            Text(value, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+            Text(
+              title,
+              style: const TextStyle(color: SipandaTheme.textSecondary, fontSize: 10),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            Text(
+              value,
+              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ),
       ],
@@ -641,20 +657,27 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(color: SipandaTheme.primary, strokeWidth: 2.5),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'PROSES RETRAINING DENGAN OPTUNA (TRIAL $_currentTrial / $_bayesianTrials)',
-                    style: const TextStyle(color: SipandaTheme.primary, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.1),
-                  ),
-                ],
+              Expanded(
+                child: Row(
+                  children: [
+                    const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(color: SipandaTheme.primary, strokeWidth: 2.5),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'PROSES RETRAINING DENGAN OPTUNA (TRIAL $_currentTrial / $_bayesianTrials)',
+                        style: const TextStyle(color: SipandaTheme.primary, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.1),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Text(
                 '${(_trainingProgress * 100).toInt()}%',
                 style: GoogleFonts.jetBrainsMono(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
@@ -672,6 +695,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
           Text(
             _trainingStatusText,
             style: GoogleFonts.jetBrainsMono(color: Colors.white70, fontSize: 11),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -806,9 +831,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
             children: [
               Container(width: 8, height: 8, color: color),
               const SizedBox(width: 8),
-              Text(title, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-              const Spacer(),
-              Text(accuracyNote, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600)),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                accuracyNote,
+                style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -974,13 +1011,28 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: SipandaTheme.textSecondary, fontSize: 11)),
-          Text(
-            value,
-            style: GoogleFonts.inter(
-              color: highlight ? SipandaTheme.primary : Colors.white,
-              fontWeight: highlight ? FontWeight.bold : FontWeight.w500,
-              fontSize: 11,
+          Expanded(
+            flex: 5,
+            child: Text(
+              label,
+              style: const TextStyle(color: SipandaTheme.textSecondary, fontSize: 11),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 6,
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: GoogleFonts.inter(
+                color: highlight ? SipandaTheme.primary : Colors.white,
+                fontWeight: highlight ? FontWeight.bold : FontWeight.w500,
+                fontSize: 11,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -994,13 +1046,28 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(param, style: GoogleFonts.jetBrainsMono(color: Colors.white70, fontSize: 11)),
-          Text(
-            val,
-            style: GoogleFonts.jetBrainsMono(
-              color: SipandaTheme.primary,
-              fontWeight: FontWeight.bold,
-              fontSize: 11,
+          Expanded(
+            flex: 5,
+            child: Text(
+              param,
+              style: GoogleFonts.jetBrainsMono(color: Colors.white70, fontSize: 11),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 6,
+            child: Text(
+              val,
+              textAlign: TextAlign.right,
+              style: GoogleFonts.jetBrainsMono(
+                color: SipandaTheme.primary,
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
