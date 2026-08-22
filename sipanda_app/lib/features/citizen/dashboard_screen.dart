@@ -480,30 +480,68 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
         padding: const EdgeInsets.symmetric(vertical: 24),
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: SipandaTheme.primary.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
-                  child: const Icon(Icons.security, color: SipandaTheme.primary)
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF141414),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white12),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.asset(
+                  'assets/images/LogoSipanda.jpg',
+                  width: double.infinity,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const Center(
+                    child: Text(
+                      'SIPANDA',
+                      style: TextStyle(
+                        color: SipandaTheme.primary,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 2.0,
+                      ),
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'SEMARANG COMMAND',
+                  style: TextStyle(
+                    color: SipandaTheme.primary,
+                    fontSize: 10,
+                    letterSpacing: 1.5,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Row(
                   children: [
-                    const Text('SEMARANG COMMAND', style: TextStyle(color: SipandaTheme.primary, fontSize: 10, letterSpacing: 1.5, fontWeight: FontWeight.bold)),
-                    Row(
-                      children: [
-                         Container(width: 8, height: 8, decoration: const BoxDecoration(color: SipandaTheme.statusAman, shape: BoxShape.circle)),
-                         const SizedBox(width: 6),
-                         const Text('Active', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))
-                      ],
-                    )
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: SipandaTheme.statusAman,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Text('Active',
+                        style: TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.bold)),
                   ],
-                )
+                ),
               ],
-            )
+            ),
           ),
           const SizedBox(height: 28),
           
