@@ -354,12 +354,12 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
         padding: const EdgeInsets.symmetric(vertical: 24),
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Row(
               children: [
                 Expanded(
                   child: Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                     decoration: BoxDecoration(
                       color: const Color(0xFF141414),
                       borderRadius: BorderRadius.circular(12),
@@ -369,7 +369,7 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
                       borderRadius: BorderRadius.circular(8),
                       child: Image.asset(
                         'assets/images/LogoSipanda.jpg',
-                        height: 52,
+                        height: 64,
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) => const Center(
                           child: Text(
