@@ -535,20 +535,21 @@ class _AlertHistoryScreenState extends State<AlertHistoryScreen> {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
         child: Container(
-          height: 64,
+          height: 72,
           padding: const EdgeInsets.symmetric(horizontal: 24),
-          color: const Color(0xFF1E1E1E).withOpacity(0.8),
+          color: const Color(0xFF1E1E1E).withOpacity(0.85),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
                   const Icon(Icons.menu, color: SipandaTheme.primary),
+                  const SizedBox(width: 12),
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(8),
                     child: Image.asset(
                       'assets/images/LogoSipanda.jpg',
-                      height: 36,
+                      height: 50,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) => const Text('SIPANDA', style: TextStyle(color: SipandaTheme.primary, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 2.0)),
                     ),
@@ -571,7 +572,7 @@ class _AlertHistoryScreenState extends State<AlertHistoryScreen> {
 
   Widget _buildWebTopBar() {
     return Container(
-      height: 64, 
+      height: 72, 
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: Colors.white12))
       ),
@@ -580,10 +581,10 @@ class _AlertHistoryScreenState extends State<AlertHistoryScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(8),
             child: Image.asset(
               'assets/images/LogoSipanda.jpg',
-              height: 38,
+              height: 52,
               fit: BoxFit.contain,
               errorBuilder: (context, error, stackTrace) => const Text('SIPANDA', style: TextStyle(color: SipandaTheme.primary, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -1)),
             ),

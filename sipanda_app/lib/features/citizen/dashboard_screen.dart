@@ -141,9 +141,9 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
         child: Container(
-          height: 64,
+          height: 72,
           padding: const EdgeInsets.symmetric(horizontal: 24),
-          color: const Color(0xFF1E1E1E).withOpacity(0.8),
+          color: const Color(0xFF1E1E1E).withOpacity(0.85),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -156,44 +156,26 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
                         _isSidebarVisible = !_isSidebarVisible;
                       });
                     },
-                    child: const Icon(Icons.menu, color: SipandaTheme.primary),
+                    child: const Icon(Icons.menu, color: SipandaTheme.primary, size: 24),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 16),
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(8),
                     child: Image.asset(
                       'assets/images/LogoSipanda.jpg',
-                      height: 38,
+                      height: 52,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) => const Text(
                         'SIPANDA',
                         style: TextStyle(
                           color: SipandaTheme.primary,
-                          fontSize: 20,
+                          fontSize: 22,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 2.0,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: SipandaTheme.primary.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: SipandaTheme.primary.withOpacity(0.3)),
-                    ),
-                    child: const Text(
-                      'LIVE TELEMETRY',
-                      style: TextStyle(
-                        color: SipandaTheme.primary,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                  )
                 ],
               ),
 
