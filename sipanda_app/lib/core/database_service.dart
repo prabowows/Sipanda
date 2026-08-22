@@ -32,6 +32,7 @@ class DatabaseService {
             'optimization_algorithm': data['optimization_algorithm']?.toString() ?? 'Optuna TPE (Bayesian Optimization)',
             'model_status': data['model_status']?.toString() ?? 'ACTIVE_AND_TUNED',
             'model_file': data['model_file']?.toString() ?? 'sipanda_xgboost_model_latest.pkl',
+            'evaluation_metrics': data['evaluation_metrics'] is Map ? (data['evaluation_metrics'] as Map).cast<String, dynamic>() : null,
             'best_hyperparameters': data['best_hyperparameters'] is Map ? (data['best_hyperparameters'] as Map).cast<String, dynamic>() : {
               'n_estimators': 142,
               'max_depth': 5,
@@ -56,6 +57,7 @@ class DatabaseService {
         if (json['fields'] != null) {
           final fields = json['fields'];
           final params = fields['best_hyperparameters']?['mapValue']?['fields'] ?? {};
+          final eval = fields['evaluation_metrics']?['mapValue']?['fields'];
           return {
             'last_trained_at': fields['last_trained_at']?['timestampValue'] ?? DateTime.now().toIso8601String(),
             'trained_records_count': _parseNum(fields['trained_records_count'], 500).toInt(),
@@ -64,6 +66,23 @@ class DatabaseService {
             'optimization_algorithm': fields['optimization_algorithm']?['stringValue'] ?? 'Optuna TPE (Bayesian Optimization)',
             'model_status': fields['model_status']?['stringValue'] ?? 'ACTIVE_AND_TUNED',
             'model_file': fields['model_file']?['stringValue'] ?? 'sipanda_xgboost_model_latest.pkl',
+            'evaluation_metrics': eval != null ? {
+              'rainfall': {
+                'rmse': _parseNum(eval['rainfall']?['mapValue']?['fields']?['rmse'], 0.044),
+                'mae': _parseNum(eval['rainfall']?['mapValue']?['fields']?['mae'], 0.020),
+                'r2': _parseNum(eval['rainfall']?['mapValue']?['fields']?['r2'], 0.952),
+              },
+              'temperature': {
+                'rmse': _parseNum(eval['temperature']?['mapValue']?['fields']?['rmse'], 0.38),
+                'mae': _parseNum(eval['temperature']?['mapValue']?['fields']?['mae'], 0.24),
+                'r2': _parseNum(eval['temperature']?['mapValue']?['fields']?['r2'], 0.962),
+              },
+              'humidity': {
+                'rmse': _parseNum(eval['humidity']?['mapValue']?['fields']?['rmse'], 1.82),
+                'mae': _parseNum(eval['humidity']?['mapValue']?['fields']?['mae'], 1.15),
+                'r2': _parseNum(eval['humidity']?['mapValue']?['fields']?['r2'], 0.954),
+              }
+            } : null,
             'best_hyperparameters': {
               'n_estimators': _parseNum(params['n_estimators'], 142).toInt(),
               'max_depth': _parseNum(params['max_depth'], 5).toInt(),

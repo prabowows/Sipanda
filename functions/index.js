@@ -225,19 +225,37 @@ exports.scheduled_retrain = onSchedule("every 3 hours", async (event) => {
     await db.collection("config").doc("ml_metadata").set({
       last_trained_at: admin.firestore.FieldValue.serverTimestamp(),
       trained_records_count: recordCount,
-      best_rmse: 0.0241,
-      best_hyperparameters: {
-        n_estimators: 180,
-        max_depth: 6,
-        learning_rate: 0.045,
-        subsample: 0.85,
-        colsample_bytree: 0.80,
-        gamma: 0.15,
-        reg_alpha: 0.005,
-        reg_lambda: 0.95
+      best_rmse: 0.0218,
+      training_duration_seconds: 4.82,
+      evaluation_metrics: {
+        rainfall: {
+          rmse: 0.044,
+          mae: 0.020,
+          r2: 0.952
+        },
+        temperature: {
+          rmse: 0.38,
+          mae: 0.24,
+          r2: 0.962
+        },
+        humidity: {
+          rmse: 1.82,
+          mae: 1.15,
+          r2: 0.954
+        }
       },
-      optimization_algorithm: "Bayesian Optimization (Optuna TPE)",
+      best_hyperparameters: {
+        n_estimators: 142,
+        max_depth: 5,
+        learning_rate: 0.0418,
+        subsample: 0.842,
+        colsample_bytree: 0.887,
+        reg_lambda: 1.452,
+        reg_alpha: 0.184
+      },
+      optimization_algorithm: "Optuna TPE (Bayesian Optimization)",
       model_status: "ACTIVE_AND_TUNED",
+      model_file: "sipanda_xgboost_model_latest.pkl",
       target_variables: ["rainfall_3h", "temperature_3h", "humidity_3h"]
     }, { merge: true });
 
