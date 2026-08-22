@@ -136,184 +136,72 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
     );
   }
 
-  Widget _buildTopBar(bool isWeb) {
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
-        child: Container(
-          height: 72,
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          color: const Color(0xFF1E1E1E).withOpacity(0.85),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildWebLayout(BuildContext context) {
+    return Row(
+      children: [
+        if (_isSidebarVisible) _buildSidebar(),
+        Expanded(
+          flex: 6,
+          child: Stack(
             children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _isSidebarVisible = !_isSidebarVisible;
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: SipandaTheme.primary.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: SipandaTheme.primary.withOpacity(0.3)),
-                      ),
-                      child: const Icon(Icons.menu, color: SipandaTheme.primary, size: 22),
-                    ),
-                  ),
-                ],
+              RiskGisMap(
+                key: _mapKey,
+                onKecamatanTapped: (kecName) {
+                  final cleanVal = kecName.toLowerCase().trim();
+                  setState(() {
+                    _currentKecamatan = cleanVal;
+                  });
+                  _loadHistoryForKecamatan(cleanVal);
+                },
               ),
-
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(20)),
-                    child: Row(
-                      children: [
-                        Container(width: 8, height: 8, decoration: const BoxDecoration(color: SipandaTheme.statusAman, shape: BoxShape.circle)),
-                        const SizedBox(width: 8),
-                        const Text('SYS ONLINE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
-                      ],
-                    ),
+              if (!_isSidebarVisible)
+                Positioned(
+                  top: 24,
+                  left: 24,
+                  child: FloatingActionButton(
+                    mini: true,
+                    backgroundColor: SipandaTheme.surfaceHigh,
+                    tooltip: 'Buka Menu Drawer',
+                    onPressed: () => setState(() => _isSidebarVisible = true),
+                    child: const Icon(Icons.menu, color: SipandaTheme.primary),
                   ),
-                  const SizedBox(width: 16),
-                  PopupMenuButton<String>(
-                    offset: const Offset(0, 48),
-                    color: SipandaTheme.surfaceHigh,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.white12)),
-                    onSelected: (value) {
-                      if (value == 'citizen') {
-                        Navigator.pushReplacementNamed(context, '/');
-                      } else if (value == 'admin') {
-                        Navigator.pushNamed(context, '/admin');
-                      } else {
-                        _showToBeDevelopedToast(context, 'Alert History');
-                      }
-                    },
-                    itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                      const PopupMenuItem<String>(
-                        value: 'citizen',
-                        child: Row(
-                          children: [
-                            Icon(Icons.dashboard, color: SipandaTheme.primary, size: 18),
-                            SizedBox(width: 12),
-                            Text('Dashboard (Peta Resiko)', style: TextStyle(color: Colors.white, fontSize: 13)),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem<String>(
-                        value: 'admin',
-                        child: Row(
-                          children: [
-                            Icon(Icons.admin_panel_settings, color: Colors.greenAccent, size: 18),
-                            SizedBox(width: 12),
-                            Text('Admin Portal (ML Hub)', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuDivider(height: 1),
-                      const PopupMenuItem<String>(
-                        value: 'history',
-                        child: Row(
-                          children: [
-                            Icon(Icons.history, color: Colors.white30, size: 18),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: Text('Alert History', style: TextStyle(color: Colors.white38, fontSize: 13)),
-                            ),
-                            Text('To be developed', style: TextStyle(color: Colors.white30, fontSize: 9)),
-                          ],
-                        ),
-                      ),
-                    ],
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: SipandaTheme.surfaceHigh,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white24)
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CircleAvatar(
-                            radius: 12,
-                            backgroundColor: SipandaTheme.primary.withOpacity(0.5),
-                            child: const Icon(Icons.person, size: 16, color: Colors.white),
-                          )
-                        ],
-                      )
-                    ),
-                  )
-                ],
+                ),
+              Positioned(
+                top: 24,
+                left: _isSidebarVisible ? 24 : 80,
+                child: _buildSearchBar(),
+              ),
+              Positioned(
+                top: 24,
+                right: 24,
+                child: FloatingActionButton(
+                  mini: true,
+                  backgroundColor: SipandaTheme.surfaceHigh,
+                  tooltip: 'Segarkan Data Telemetri',
+                  onPressed: _isLoadingBmkg ? null : _refreshBmkgData,
+                  child: _isLoadingBmkg
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: SipandaTheme.primary))
+                      : const Icon(Icons.refresh, color: SipandaTheme.primary),
+                ),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildWebLayout(BuildContext context) {
-    return Column(
-      children: [
-        _buildTopBar(true),
-        Expanded(
-          child: Row(
-            children: [
-              if (_isSidebarVisible) _buildSidebar(),
-              Expanded(
-                flex: 6,
-                child: Stack(
-                  children: [
-                    RiskGisMap(
-                      key: _mapKey,
-                      onKecamatanTapped: (kecName) {
-                        final cleanVal = kecName.toLowerCase().trim();
-                        setState(() {
-                          _currentKecamatan = cleanVal;
-                        });
-                        _loadHistoryForKecamatan(cleanVal);
-                      },
-                    ),
-                    Positioned(
-                      top: 24, left: 24,
-                      child: _buildSearchBar(),
-                    ),
-                    Positioned(
-                      top: 24, right: 24,
-                      child: FloatingActionButton(
-                        mini: true,
-                        backgroundColor: SipandaTheme.surfaceHigh,
-                        onPressed: _isLoadingBmkg ? null : _refreshBmkgData,
-                        child: _isLoadingBmkg 
-                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: SipandaTheme.primary))
-                          : const Icon(Icons.refresh, color: SipandaTheme.primary),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(
-                width: 430,
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF1E1E1E),
-                    border: Border(left: BorderSide(color: Colors.white12)),
-                  ),
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-                    child: _buildDashboardContent(),
-                  ),
-                ),
-              )
-            ],
+        SizedBox(
+          width: 430,
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFF1E1E1E),
+              border: Border(left: BorderSide(color: Colors.white12)),
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              child: _buildDashboardContent(),
+            ),
           ),
         )
       ],
@@ -337,18 +225,19 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
         ),
         
         Positioned(
-          top: 80,
+          top: 24,
           left: 16,
           right: 72,
           child: _buildSearchBar(),
         ),
         
         Positioned(
-          top: 80,
+          top: 24,
           right: 16,
           child: FloatingActionButton(
             mini: true,
             backgroundColor: SipandaTheme.surfaceHigh,
+            tooltip: 'Segarkan Data',
             onPressed: _isLoadingBmkg ? null : _refreshBmkgData,
             child: _isLoadingBmkg 
               ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: SipandaTheme.primary))
@@ -357,7 +246,7 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
         ),
 
         Positioned(
-          top: 140,
+          top: 84,
           left: 0,
           right: 0,
           child: Center(
@@ -405,11 +294,6 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
               ),
             );
           },
-        ),
-
-        Positioned(
-          top: 0, left: 0, right: 0,
-          child: _buildTopBar(false)
         ),
 
         Positioned(
@@ -471,32 +355,56 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF141414),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white12),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
-                  'assets/images/LogoSipanda.jpg',
-                  width: double.infinity,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => const Center(
-                    child: Text(
-                      'SIPANDA',
-                      style: TextStyle(
-                        color: SipandaTheme.primary,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 2.0,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF141414),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white12),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset(
+                        'assets/images/LogoSipanda.jpg',
+                        height: 52,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => const Center(
+                          child: Text(
+                            'SIPANDA',
+                            style: TextStyle(
+                              color: SipandaTheme.primary,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 2.0,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
+                const SizedBox(width: 8),
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      _isSidebarVisible = false;
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.white12),
+                    ),
+                    child: const Icon(Icons.close, color: Colors.white70, size: 20),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 12),
