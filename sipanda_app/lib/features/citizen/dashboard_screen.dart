@@ -158,20 +158,41 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen> {
                     },
                     child: const Icon(Icons.menu, color: SipandaTheme.primary),
                   ),
-                  const SizedBox(width: 16),
-                  const Text('SIPANDA', 
-                    style: TextStyle(
-                      color: SipandaTheme.primary,
-                      fontSize: 20, 
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 2.0
-                    )
+                  const SizedBox(width: 12),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: Image.asset(
+                      'assets/images/LogoSipanda.jpg',
+                      height: 38,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => const Text(
+                        'SIPANDA',
+                        style: TextStyle(
+                          color: SipandaTheme.primary,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2.0,
+                        ),
+                      ),
+                    ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(color: SipandaTheme.primary.withOpacity(0.2), borderRadius: BorderRadius.circular(4)),
-                    child: const Text('LIVE TELEMETRY', style: TextStyle(color: SipandaTheme.primary, fontSize: 10, fontWeight: FontWeight.bold))
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: SipandaTheme.primary.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: SipandaTheme.primary.withOpacity(0.3)),
+                    ),
+                    child: const Text(
+                      'LIVE TELEMETRY',
+                      style: TextStyle(
+                        color: SipandaTheme.primary,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
                   )
                 ],
               ),

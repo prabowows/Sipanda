@@ -544,8 +544,15 @@ class _AlertHistoryScreenState extends State<AlertHistoryScreen> {
               Row(
                 children: [
                   const Icon(Icons.menu, color: SipandaTheme.primary),
-                  const SizedBox(width: 16),
-                  const Text('SIPANDA', style: TextStyle(color: SipandaTheme.primary, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 2.0)),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: Image.asset(
+                      'assets/images/LogoSipanda.jpg',
+                      height: 36,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => const Text('SIPANDA', style: TextStyle(color: SipandaTheme.primary, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 2.0)),
+                    ),
+                  ),
                 ],
               ),
               Row(
@@ -572,7 +579,15 @@ class _AlertHistoryScreenState extends State<AlertHistoryScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text('SIPANDA', style: TextStyle(color: SipandaTheme.primary, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -1)),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: Image.asset(
+              'assets/images/LogoSipanda.jpg',
+              height: 38,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) => const Text('SIPANDA', style: TextStyle(color: SipandaTheme.primary, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -1)),
+            ),
+          ),
           Row(
             children: [
                const Text('System Status: Active', style: TextStyle(fontSize: 10, color: SipandaTheme.statusAman, letterSpacing: 1)),
