@@ -15,7 +15,7 @@ class AdminDashboardScreen extends StatefulWidget {
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> with SingleTickerProviderStateMixin {
   // ML Model State
-  String _modelName = 'Sipanda Multivariate XGBoost Forecaster';
+  String _modelName = 'XGBoost Multivariate';
   String _modelVersion = 'v2.4.0 (Optuna Auto-Tuned)';
   String _algorithm = 'XGBoost MultiOutputRegressor + Optuna TPE';
 
@@ -24,21 +24,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
   int _trainingRecords = 500;
   int _bayesianTrials = 25;
 
-  // Simulator / Retraining state
-  bool _isTraining = false;
-  double _trainingProgress = 0.0;
-  String _trainingStatusText = '';
-  int _currentTrial = 0;
+  // Cloud Retraining trigger state
+  bool _isTriggering = false;
 
-  // Evaluation Metrics
+  // Evaluation Metrics (MSE, RMSE, MAE, R²)
+  double _mseRainfall = 0.0019;
   double _rmseRainfall = 0.044;
   double _maeRainfall = 0.020;
   double _r2Rainfall = 0.952;
   
+  double _mseTemp = 0.1444;
   double _rmseTemp = 0.38;
   double _maeTemp = 0.24;
   double _r2Temp = 0.962;
 
+  double _mseHumidity = 3.3124;
   double _rmseHumidity = 1.82;
   double _maeHumidity = 1.15;
   double _r2Humidity = 0.954;
@@ -96,18 +96,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
               final rf = em['rainfall'] as Map<String, dynamic>;
               _rmseRainfall = (rf['rmse'] as num?)?.toDouble() ?? _rmseRainfall;
               _maeRainfall = (rf['mae'] as num?)?.toDouble() ?? _maeRainfall;
+              _mseRainfall = (rf['mse'] as num?)?.toDouble() ?? (_rmseRainfall * _rmseRainfall);
               _r2Rainfall = (rf['r2'] as num?)?.toDouble() ?? _r2Rainfall;
             }
             if (em['temperature'] != null) {
               final tp = em['temperature'] as Map<String, dynamic>;
               _rmseTemp = (tp['rmse'] as num?)?.toDouble() ?? _rmseTemp;
               _maeTemp = (tp['mae'] as num?)?.toDouble() ?? _maeTemp;
+              _mseTemp = (tp['mse'] as num?)?.toDouble() ?? (_rmseTemp * _rmseTemp);
               _r2Temp = (tp['r2'] as num?)?.toDouble() ?? _r2Temp;
             }
             if (em['humidity'] != null) {
               final hm = em['humidity'] as Map<String, dynamic>;
               _rmseHumidity = (hm['rmse'] as num?)?.toDouble() ?? _rmseHumidity;
               _maeHumidity = (hm['mae'] as num?)?.toDouble() ?? _maeHumidity;
+              _mseHumidity = (hm['mse'] as num?)?.toDouble() ?? (_rmseHumidity * _rmseHumidity);
               _r2Humidity = (hm['r2'] as num?)?.toDouble() ?? _r2Humidity;
             }
           }
@@ -157,107 +160,227 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
     return '${diff.inDays} hari yang lalu';
   }
 
-  // Trigger Bayesian Retraining Simulator & commit to Firestore
-  Future<void> _triggerRetraining() async {
-    if (_isTraining) return;
+  // Trigger Manual Retraining ke Google Cloud & tampilkan konfirmasi dialog
+  Future<void> _triggerManualRetrain() async {
+    if (_isTriggering) return;
 
     setState(() {
-      _isTraining = true;
-      _trainingProgress = 0.0;
-      _trainingStatusText = 'Menginisialisasi Optuna TPE Sampler (5-Fold Cross Validation)...';
-      _currentTrial = 0;
+      _isTriggering = true;
     });
 
-    for (int i = 1; i <= _bayesianTrials; i++) {
-      await Future.delayed(const Duration(milliseconds: 140));
-      if (!mounted) return;
-      setState(() {
-        _currentTrial = i;
-        _trainingProgress = i / _bayesianTrials;
-        _trainingStatusText = 'Menjalankan Trial $i/$_bayesianTrials: Menilai kombinasi hyperparameter pada 500 record...';
-      });
-    }
-
-    // Finished training
-    await Future.delayed(const Duration(milliseconds: 300));
-    if (!mounted) return;
-
-    final now = DateTime.now();
-    setState(() {
-      _isTraining = false;
-      _lastTrainingTime = now;
-      _nextScheduledRetrain = now.add(const Duration(hours: 3));
-      _trainingStatusText = 'Training Selesai. Model disimpan ke model_latest.pkl';
-      
-      // Update with fresh tuned metrics
-      _overallCvScore = 0.0218;
-      _rmseRainfall = 0.044;
-      _maeRainfall = 0.020;
-      _r2Rainfall = 0.952;
-      _rmseTemp = 0.38;
-      _maeTemp = 0.24;
-      _r2Temp = 0.962;
-      _rmseHumidity = 1.82;
-      _maeHumidity = 1.15;
-      _r2Humidity = 0.954;
-      _bestEstimators = 142;
-      _bestLearningRate = 0.0418;
-    });
-
-    // Commit new metadata to Firestore 'config/ml_metadata'
-    await _dbService.saveMlMetadata({
-      'last_trained_at': now.toIso8601String(),
-      'trained_records_count': _trainingRecords,
-      'best_rmse': _overallCvScore,
-      'training_duration_seconds': 4.82,
-      'optimization_algorithm': 'Optuna TPE (Bayesian Optimization)',
-      'model_status': 'ACTIVE_AND_TUNED',
-      'model_file': 'sipanda_xgboost_model_latest.pkl',
-      'evaluation_metrics': {
-        'rainfall': {
-          'rmse': _rmseRainfall,
-          'mae': _maeRainfall,
-          'r2': _r2Rainfall,
-        },
-        'temperature': {
-          'rmse': _rmseTemp,
-          'mae': _maeTemp,
-          'r2': _r2Temp,
-        },
-        'humidity': {
-          'rmse': _rmseHumidity,
-          'mae': _maeHumidity,
-          'r2': _r2Humidity,
-        }
-      },
-      'best_hyperparameters': {
-        'n_estimators': _bestEstimators,
-        'max_depth': _bestMaxDepth,
-        'learning_rate': _bestLearningRate,
-        'subsample': _bestSubsample,
-        'colsample_bytree': _bestColsample,
-        'reg_lambda': _bestLambda,
-        'reg_alpha': _bestAlpha,
+    try {
+      final updatedMeta = await _dbService.triggerManualRetrain();
+      if (updatedMeta != null && mounted) {
+        setState(() {
+          if (updatedMeta['last_trained_at'] != null) {
+            _lastTrainingTime = _parseDateTime(updatedMeta['last_trained_at']);
+            _nextScheduledRetrain = _lastTrainingTime.add(const Duration(hours: 3));
+          }
+          if (updatedMeta['best_rmse'] != null) {
+            _overallCvScore = (updatedMeta['best_rmse'] as num).toDouble();
+          }
+          if (updatedMeta['evaluation_metrics'] != null) {
+            final em = updatedMeta['evaluation_metrics'] as Map<String, dynamic>;
+            if (em['rainfall'] != null) {
+              final rf = em['rainfall'] as Map<String, dynamic>;
+              _rmseRainfall = (rf['rmse'] as num?)?.toDouble() ?? _rmseRainfall;
+              _maeRainfall = (rf['mae'] as num?)?.toDouble() ?? _maeRainfall;
+              _mseRainfall = (rf['mse'] as num?)?.toDouble() ?? (_rmseRainfall * _rmseRainfall);
+              _r2Rainfall = (rf['r2'] as num?)?.toDouble() ?? _r2Rainfall;
+            }
+            if (em['temperature'] != null) {
+              final tp = em['temperature'] as Map<String, dynamic>;
+              _rmseTemp = (tp['rmse'] as num?)?.toDouble() ?? _rmseTemp;
+              _maeTemp = (tp['mae'] as num?)?.toDouble() ?? _maeTemp;
+              _mseTemp = (tp['mse'] as num?)?.toDouble() ?? (_rmseTemp * _rmseTemp);
+              _r2Temp = (tp['r2'] as num?)?.toDouble() ?? _r2Temp;
+            }
+            if (em['humidity'] != null) {
+              final hm = em['humidity'] as Map<String, dynamic>;
+              _rmseHumidity = (hm['rmse'] as num?)?.toDouble() ?? _rmseHumidity;
+              _maeHumidity = (hm['mae'] as num?)?.toDouble() ?? _maeHumidity;
+              _mseHumidity = (hm['mse'] as num?)?.toDouble() ?? (_rmseHumidity * _rmseHumidity);
+              _r2Humidity = (hm['r2'] as num?)?.toDouble() ?? _r2Humidity;
+            }
+          }
+          if (updatedMeta['best_hyperparameters'] != null) {
+            final p = updatedMeta['best_hyperparameters'] as Map<String, dynamic>;
+            _bestEstimators = (p['n_estimators'] as num?)?.toInt() ?? _bestEstimators;
+            _bestMaxDepth = (p['max_depth'] as num?)?.toInt() ?? _bestMaxDepth;
+            _bestLearningRate = (p['learning_rate'] as num?)?.toDouble() ?? _bestLearningRate;
+            _bestSubsample = (p['subsample'] as num?)?.toDouble() ?? _bestSubsample;
+            _bestColsample = (p['colsample_bytree'] as num?)?.toDouble() ?? _bestColsample;
+            _bestLambda = (p['reg_lambda'] as num?)?.toDouble() ?? _bestLambda;
+            _bestAlpha = (p['reg_alpha'] as num?)?.toDouble() ?? _bestAlpha;
+          }
+        });
       }
-    });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: const Color(0xFF005236),
-        behavior: SnackBarBehavior.floating,
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle, color: Color(0xFF4EDEa3)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Pelatihan model XGBoost selesai! Metadata Firestore & model_latest.pkl telah diperbarui.',
-                style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+      if (mounted) {
+        _showSuccessTriggerDialog();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.redAccent,
+            content: Text('Gagal mengirim trigger ke Google Cloud: $e'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isTriggering = false;
+        });
+      }
+    }
+  }
+
+  void _showSuccessTriggerDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext ctx) {
+        return Dialog(
+          backgroundColor: const Color(0xFF1E2638),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Color(0xFF4EDEa3), width: 1.2),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF005236),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFF4EDEa3)),
+                        ),
+                        child: const Icon(
+                          Icons.cloud_done,
+                          color: Color(0xFF4EDEa3),
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Triggering Manual Berhasil',
+                              style: GoogleFonts.inter(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF107C41).withOpacity(0.3),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                'TERHUBUNG KE GOOGLE CLOUD',
+                                style: TextStyle(
+                                  color: Color(0xFF4EDEa3),
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  const Divider(color: Colors.white12, height: 1),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Perintah retraining model telah berhasil dikirim ke Google Cloud Functions / Cloud Engine.',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.black26,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.white10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildDialogBullet(Icons.tune, 'Algoritma: Optuna TPE Bayesian Auto-Tuning (5-Fold CV)'),
+                        const SizedBox(height: 8),
+                        _buildDialogBullet(Icons.dataset, 'Dataset: 500 Rekaman Telemetri BMKG Terakhir'),
+                        const SizedBox(height: 8),
+                        _buildDialogBullet(Icons.hourglass_top, 'Proses berlangsung di server Google Cloud. Tunggu beberapa saat, seluruh metrik (MSE, MAE, RMSE, R²) dan parameter terbaik telah disinkronkan ke Firestore.'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: SipandaTheme.primary,
+                          foregroundColor: SipandaTheme.background,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                        },
+                        child: Text(
+                          'Mengerti & Tutup',
+                          style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDialogBullet(IconData icon, String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: SipandaTheme.primary, size: 14),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(color: Colors.white70, fontSize: 11, height: 1.3),
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -356,8 +479,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
               children: [
                 _buildActiveModelHero(isWeb),
                 const SizedBox(height: 24),
-                if (_isTraining) _buildLiveTrainingCard(),
-                if (_isTraining) const SizedBox(height: 24),
                 if (isWeb)
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -585,12 +706,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
-                    onPressed: _isTraining ? null : _triggerRetraining,
-                    icon: _isTraining 
+                    onPressed: _isTriggering ? null : _triggerManualRetrain,
+                    icon: _isTriggering 
                         ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-                        : const Icon(Icons.replay_circle_filled, size: 18),
+                        : const Icon(Icons.cloud_upload_outlined, size: 18),
                     label: Text(
-                      _isTraining ? 'Sedang Melatih...' : 'Latih Ulang Sekarang (Auto-Tune)',
+                      _isTriggering ? 'Sedang Menghubungkan ke Cloud...' : 'Latih Ulang Sekarang (Manual Trigger)',
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -640,66 +761,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
           ],
         ),
       ],
-    );
-  }
-
-  Widget _buildLiveTrainingCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E2638),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: SipandaTheme.primary),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(color: SipandaTheme.primary, strokeWidth: 2.5),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'PROSES RETRAINING DENGAN OPTUNA (TRIAL $_currentTrial / $_bayesianTrials)',
-                        style: const TextStyle(color: SipandaTheme.primary, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.1),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '${(_trainingProgress * 100).toInt()}%',
-                style: GoogleFonts.jetBrainsMono(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          LinearProgressIndicator(
-            value: _trainingProgress,
-            backgroundColor: Colors.white12,
-            color: SipandaTheme.primary,
-            minHeight: 6,
-          ),
-          const SizedBox(height: 10),
-          Text(
-            _trainingStatusText,
-            style: GoogleFonts.jetBrainsMono(color: Colors.white70, fontSize: 11),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
     );
   }
 
@@ -758,7 +819,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                   const Icon(Icons.query_stats, color: Colors.amberAccent, size: 18),
                   const SizedBox(width: 8),
                   Text(
-                    'METRIK EVALUASI KINERJA (ACCURACY & ERROR)',
+                    'METRIK EVALUASI',
                     style: GoogleFonts.inter(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
                   ),
                 ],
@@ -770,7 +831,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                   borderRadius: BorderRadius.circular(4),
                   border: Border.all(color: Colors.green),
                 ),
-                child: Text('CV LOSS: $_overallCvScore', style: const TextStyle(color: Colors.greenAccent, fontSize: 9, fontWeight: FontWeight.bold)),
+                child: Text('CV LOSS (MSE): ${_overallCvScore.toStringAsFixed(4)}', style: const TextStyle(color: Colors.greenAccent, fontSize: 9, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -781,28 +842,31 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
           _buildTargetMetricTile(
             title: 'Curah Hujan (Rainfall - mm)',
             color: Colors.blueAccent,
-            rmse: '$_rmseRainfall mm',
-            mae: '$_maeRainfall mm',
-            r2: '$_r2Rainfall',
+            mse: _mseRainfall.toStringAsFixed(4),
+            rmse: '${_rmseRainfall.toStringAsFixed(3)} mm',
+            mae: '${_maeRainfall.toStringAsFixed(3)} mm',
+            r2: _r2Rainfall.toStringAsFixed(3),
             accuracyNote: 'Akurasi Deteksi Banjir: 97.4%',
           ),
           const SizedBox(height: 12),
           _buildTargetMetricTile(
             title: 'Suhu Udara (Temperature - °C)',
             color: Colors.redAccent,
-            rmse: '$_rmseTemp °C',
-            mae: '$_maeTemp °C',
-            r2: '$_r2Temp',
-            accuracyNote: 'Error Rata-rata Sangat Rendah (±0.24°C)',
+            mse: _mseTemp.toStringAsFixed(4),
+            rmse: '${_rmseTemp.toStringAsFixed(2)} °C',
+            mae: '${_maeTemp.toStringAsFixed(2)} °C',
+            r2: _r2Temp.toStringAsFixed(3),
+            accuracyNote: 'Error Sangat Rendah (±${_maeTemp.toStringAsFixed(2)}°C)',
           ),
           const SizedBox(height: 12),
           _buildTargetMetricTile(
             title: 'Kelembapan Udara (Humidity - %)',
             color: Colors.greenAccent,
-            rmse: '$_rmseHumidity %',
-            mae: '$_maeHumidity %',
-            r2: '$_r2Humidity',
-            accuracyNote: 'Korelasi Tinggi dengan Kondisi Real-Time',
+            mse: _mseHumidity.toStringAsFixed(4),
+            rmse: '${_rmseHumidity.toStringAsFixed(2)} %',
+            mae: '${_maeHumidity.toStringAsFixed(2)} %',
+            r2: _r2Humidity.toStringAsFixed(3),
+            accuracyNote: 'Korelasi Tinggi Real-Time',
           ),
         ],
       ),
@@ -812,6 +876,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
   Widget _buildTargetMetricTile({
     required String title,
     required Color color,
+    required String mse,
     required String rmse,
     required String mae,
     required String r2,
@@ -850,11 +915,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
           ),
           const SizedBox(height: 10),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _metricChip('RMSE', rmse),
-              _metricChip('MAE', mae),
-              _metricChip('R² SCORE', r2, isScore: true),
+              Expanded(child: _metricChip('MSE', mse)),
+              Expanded(child: _metricChip('RMSE', rmse)),
+              Expanded(child: _metricChip('MAE', mae)),
+              Expanded(child: _metricChip('R² SCORE', r2, isScore: true)),
             ],
           ),
         ],
@@ -864,15 +930,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
 
   Widget _metricChip(String label, String value, {bool isScore = false}) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(label, style: const TextStyle(color: SipandaTheme.textSecondary, fontSize: 9)),
-        const SizedBox(height: 2),
         Text(
-          value,
-          style: GoogleFonts.jetBrainsMono(
-            color: isScore ? SipandaTheme.primary : Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
+          label,
+          style: const TextStyle(color: SipandaTheme.textSecondary, fontSize: 9, fontWeight: FontWeight.w600),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 2),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            value,
+            style: GoogleFonts.jetBrainsMono(
+              color: isScore ? SipandaTheme.primary : Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ],
